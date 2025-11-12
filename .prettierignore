@@ -1,0 +1,21 @@
+# Dependencies
+node_modules
+
+# Build output
+build
+dist
+.next
+out
+
+# Cache
+.cache
+coverage
+
+# Environment files
+.env
+.env.local
+
+# IDE
+.vscode
+.idea
+*.sublime-*
