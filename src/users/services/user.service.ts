@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { UserRepository } from '../repositories/user.repository';
 import { User } from '../entities/user.entity';
@@ -34,15 +34,16 @@ export class UserService {
 			],
 		});
 		if (!user) {
-			throw new Error('User not found');
+			throw new BadRequestException('User not found');
 		}
 		return user;
 	}
 
 	async findByUsername(username: string): Promise<User> {
 		const user = await this.userRepository.findOne({ where: { username } });
+		console.log(user);
 		if (!user) {
-			throw new Error('User not found');
+			throw new BadRequestException('User not found');
 		}
 		return user;
 	}
@@ -53,11 +54,13 @@ export class UserService {
 			select: ['id'],
 		});
 		if (checkUser) {
-			throw new Error('User already exists');
+			throw new BadRequestException('User already exists');
 		}
 
 		const hashed = await this.hashPassword(user.password);
 		user.password = hashed;
+		user.role = 'user';
+		user.is_active = true;
 
 		const newUser = this.userRepository.create(user);
 		return this.userRepository.save(newUser);
