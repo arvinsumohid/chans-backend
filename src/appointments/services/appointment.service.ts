@@ -2,28 +2,40 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { CreateAppointmentDto, UpdateAppointmentDto } from '../dtos/appointment.dto';
 import { Appointment } from '../entities/appointment.entity';
+import { UserRepository } from '@/users/repositories/user.repository';
+import { ServiceRepository } from '@/services/repositories/service.repository';
+import { DoctorRepository } from '@/doctors/repositories/doctor.repository';
 
 @Injectable()
 export class AppointmentService {
-	constructor(private readonly appointmentRepository: AppointmentRepository) {}
+	constructor(
+		private readonly appointmentRepository: AppointmentRepository,
+		private readonly userRepository: UserRepository,
+		private readonly serviceRepository: ServiceRepository,
+		private readonly doctorRepository: DoctorRepository,
+	) {}
 
 	async createAppointment(createAppointmentDto: CreateAppointmentDto): Promise<Appointment> {
-		const user = await this.appointmentRepository.findOne({ where: { id: createAppointmentDto.user_id } });
+		const user = await this.userRepository.findOne({ where: { id: createAppointmentDto.user_id } });
 		if (!user) {
 			throw new NotFoundException('User not found');
 		}
 
-		const service = await this.appointmentRepository.findOne({ where: { id: createAppointmentDto.service_id } });
+		const service = await this.serviceRepository.findOne({ where: { id: createAppointmentDto.service_id } });
 		if (!service) {
 			throw new NotFoundException('Service not found');
 		}
 
-		const doctor = await this.appointmentRepository.findOne({ where: { id: createAppointmentDto.doctor_id } });
+		const doctor = await this.doctorRepository.findOne({ where: { id: createAppointmentDto.doctor_id } });
 		if (!doctor) {
 			throw new NotFoundException('Doctor not found');
 		}
 
-		const appointment = this.appointmentRepository.create(createAppointmentDto);
+		console.log('appointment created', createAppointmentDto);
+		const appointment = this.appointmentRepository.create({
+			...createAppointmentDto,
+			appointment_date: new Date(createAppointmentDto.appointment_date),
+		});
 		return this.appointmentRepository.save(appointment);
 	}
 

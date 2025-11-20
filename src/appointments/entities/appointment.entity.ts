@@ -1,4 +1,5 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, BeforeInsert } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
 
 @Entity('appointments')
 export class Appointment {
@@ -25,4 +26,11 @@ export class Appointment {
 
 	@DeleteDateColumn()
 	deleted_at: Date;
+
+	@BeforeInsert()
+	private generateId() {
+		if (!this.id) {
+			this.id = uuidv4();
+		}
+	}
 }

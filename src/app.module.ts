@@ -10,14 +10,16 @@ import AppDataSource from './data-source';
 import { AddressModule } from './addresses/address.module';
 import { DoctorModule } from './doctors/doctor.module';
 import { ServiceModule } from './services/service.module';
+import { AppointmentModule } from './appointments/appointment.module';
 
 @Module({
 	imports: [
 		AuthModule,
-		UserModule,
 		AddressModule,
+		AppointmentModule,
 		DoctorModule,
 		ServiceModule,
+		UserModule,
 		ConfigModule.forRoot({
 			isGlobal: true,
 		}),

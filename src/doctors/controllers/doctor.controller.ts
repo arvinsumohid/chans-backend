@@ -1,12 +1,11 @@
-import { Controller } from '@nestjs/common';
-import { Post, Get, Put, Delete, Body, Param } from '@nestjs/common';
+import { Post, Get, Put, Delete, Body, Param, Query, UseGuards, Controller } from '@nestjs/common';
 import { DoctorService } from '../services/doctor.service';
 import { CreateDoctorDto, UpdateDoctorDto } from '../dtos/doctor.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
-import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiResponseDto } from '../../app.dto';
 import { ApiResponse } from '../../utils/api.util';
+import { PaginationDto } from '../../common/common.dto';
 
 @Controller('doctors')
 @ApiBearerAuth('access-token')
@@ -20,8 +19,8 @@ export class DoctorController {
 	}
 
 	@Get()
-	async findAll(): Promise<ApiResponseDto> {
-		return ApiResponse(await this.doctorService.findAll(), 'Doctors found successfully', 200);
+	async findAll(@Query() paginationDto: PaginationDto): Promise<ApiResponseDto> {
+		return ApiResponse(await this.doctorService.findAll(paginationDto), 'Doctors found successfully', 200);
 	}
 
 	@Get(':id')

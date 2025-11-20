@@ -1,10 +1,11 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiResponseDto } from '../../app.dto';
 import { ApiResponse } from '../../utils/api.util';
 import { ServiceService } from '../services/service.service';
 import { CreateServiceDto, UpdateServiceDto } from '../dtos/service.dto';
+import { PaginationDto } from '../../common/common.dto';
 
 @Controller('services')
 @ApiBearerAuth('access-token')
@@ -18,8 +19,8 @@ export class ServiceController {
 	}
 
 	@Get()
-	async findAll(): Promise<ApiResponseDto> {
-		return ApiResponse(await this.serviceService.findAll(), 'Services found successfully', 200);
+	async findAll(@Query() paginationDto: PaginationDto): Promise<ApiResponseDto> {
+		return ApiResponse(await this.serviceService.findAll(paginationDto), 'Services found successfully', 200);
 	}
 
 	@Get(':id')

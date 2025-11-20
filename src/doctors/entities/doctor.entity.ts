@@ -1,5 +1,6 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, BeforeInsert } from 'typeorm';
+import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, BeforeInsert, OneToMany } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
+import { DoctorServices } from '../entities/doctor-service.entity';
 
 @Entity('doctors')
 export class Doctor {
@@ -29,6 +30,9 @@ export class Doctor {
 
 	@DeleteDateColumn()
 	deleted_at: Date;
+
+	@OneToMany(() => DoctorServices, (doctorService) => doctorService.doctor)
+	doctor_services: DoctorServices[];
 
 	@BeforeInsert()
 	private generateId() {
