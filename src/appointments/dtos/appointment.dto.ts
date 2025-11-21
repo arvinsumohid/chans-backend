@@ -25,3 +25,15 @@ export class CreateAppointmentDto {
 }
 
 export class UpdateAppointmentDto extends PartialType(CreateAppointmentDto) {}
+
+export class QueryCalendarDto {
+	@ApiProperty({ example: '2025-11-21', required: true })
+	@IsNotEmpty()
+	@IsString()
+	from: string;
+
+	@ApiProperty({ example: '2025-11-21', required: true })
+	@IsNotEmpty()
+	@IsString()
+	to: string;
+}

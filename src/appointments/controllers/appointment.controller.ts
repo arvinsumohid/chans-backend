@@ -1,10 +1,14 @@
-import { Controller, Post, Get, Put, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Param, Body, Query, Request, UseGuards } from '@nestjs/common';
 import { AppointmentService } from '../services/appointment.service';
-import { CreateAppointmentDto, UpdateAppointmentDto } from '../dtos/appointment.dto';
+import { CreateAppointmentDto, UpdateAppointmentDto, QueryCalendarDto } from '../dtos/appointment.dto';
 import { ApiResponseDto } from '@/app.dto';
 import { ApiResponse } from '@/utils/api.util';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('appointments')
+@ApiBearerAuth('access-token')
+@UseGuards(AuthGuard('jwt'))
 export class AppointmentController {
 	constructor(private readonly appointmentService: AppointmentService) {}
 
@@ -16,6 +20,13 @@ export class AppointmentController {
 	@Get()
 	async findAll(): Promise<ApiResponseDto> {
 		return ApiResponse(await this.appointmentService.findAll(), 'Appointments found successfully', 200);
+	}
+
+	@Get('calendar')
+	async findCalendar(@Request() req, @Query() query: QueryCalendarDto): Promise<ApiResponseDto> {
+		const userId: string = req.user.id as string;
+		console.log(userId);
+		return ApiResponse(await this.appointmentService.findCalendar(userId, query), 'Appointments found successfully', 200);
 	}
 
 	@Get(':id')
