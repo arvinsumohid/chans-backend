@@ -25,7 +25,6 @@ export class AppointmentController {
 	@Get('calendar')
 	async findCalendar(@Request() req, @Query() query: QueryCalendarDto): Promise<ApiResponseDto> {
 		const userId: string = req.user.id as string;
-		console.log(userId);
 		return ApiResponse(await this.appointmentService.findCalendar(userId, query), 'Appointments found successfully', 200);
 	}
 
