@@ -7,10 +7,18 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './users/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import AppDataSource from './data-source';
+import { AddressModule } from './addresses/address.module';
+import { DoctorModule } from './doctors/doctor.module';
+import { ServiceModule } from './services/service.module';
+import { AppointmentModule } from './appointments/appointment.module';
 
 @Module({
 	imports: [
 		AuthModule,
+		AddressModule,
+		AppointmentModule,
+		DoctorModule,
+		ServiceModule,
 		UserModule,
 		ConfigModule.forRoot({
 			isGlobal: true,
