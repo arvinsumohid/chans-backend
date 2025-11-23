@@ -4,7 +4,7 @@
 2. Create a .env file from .env.sample
 3. `npm install`
 4. `npm run migration:run`
-5. `npm run seed:run` for admin Note: This will create an admin user with the credentials specified in the .env file
+5. `npm run seed` for admin Note: This will create an admin user with the credentials specified in the .env file
 6. `npm run start:dev`
 7. `${BACKEND_URL}/api/docs` for API documentation
 
