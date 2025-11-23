@@ -1,6 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, IsDate } from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
+import { Appointment } from '../entities/appointment.entity';
+import { UserDto } from '@/users/dtos/user.dto';
 
 export class CreateAppointmentDto {
 	@ApiProperty()
@@ -36,4 +38,18 @@ export class QueryCalendarDto {
 	@IsNotEmpty()
 	@IsString()
 	to: string;
+}
+
+export class AppointmentDto {
+	adminAppointmentListResponseDto(appointments: Appointment[]): Appointment[] {
+		return appointments.map((appointment) => {
+			return this.adminAppointmentDetailResponseDto(appointment);
+		});
+	}
+
+	adminAppointmentDetailResponseDto(appointment: Appointment): Appointment {
+		const user = UserDto.userResponseDto(appointment.user);
+
+		return { ...appointment, user } as Appointment;
+	}
 }

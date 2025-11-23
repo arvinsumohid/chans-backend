@@ -3,9 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Entity('users')
 export class User {
-	@PrimaryColumn({ type: 'char', length: 36, default: () => 'UUID()' })
+	@PrimaryColumn({ type: 'char', length: 36 })
 	id: string;
-
 	@Column({ type: 'varchar', length: 100 })
 	username: string;
 

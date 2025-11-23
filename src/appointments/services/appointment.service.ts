@@ -1,12 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { AppointmentRepository } from '../repositories/appointment.repository';
-import { CreateAppointmentDto, UpdateAppointmentDto } from '../dtos/appointment.dto';
+import { AppointmentDto, CreateAppointmentDto, UpdateAppointmentDto } from '../dtos/appointment.dto';
 import { Appointment } from '../entities/appointment.entity';
 import { UserRepository } from '@/users/repositories/user.repository';
 import { ServiceRepository } from '@/services/repositories/service.repository';
 import { DoctorRepository } from '@/doctors/repositories/doctor.repository';
 import { DoctorServiceRepository } from '@/doctors/repositories/doctor-service.repository';
 import { Between } from 'typeorm';
+import { Role } from '@/users/enum/user.enum';
 
 @Injectable()
 export class AppointmentService {
@@ -18,8 +19,18 @@ export class AppointmentService {
 		private readonly doctorServiceRepository: DoctorServiceRepository,
 	) {}
 
-	async createAppointment(createAppointmentDto: CreateAppointmentDto): Promise<Appointment> {
-		const user = await this.userRepository.findOne({ where: { id: createAppointmentDto.user_id } });
+	async createAppointment(userId: string, createAppointmentDto: CreateAppointmentDto): Promise<Appointment> {
+		if (userId !== createAppointmentDto.user_id) {
+			throw new BadRequestException('Unauthorized to create appointment');
+		}
+
+		const user = await this.userRepository.findOne({
+			where: {
+				id: createAppointmentDto.user_id,
+			},
+			select: ['id', 'role'],
+		});
+
 		if (!user) {
 			throw new NotFoundException('User not found');
 		}
@@ -69,12 +80,30 @@ export class AppointmentService {
 	}
 
 	async findCalendar(userId: string, query: { from: string; to: string }): Promise<Appointment[]> {
-		const user = await this.userRepository.findOne({ where: { id: userId } });
+		const user = await this.userRepository.findOne({
+			where: { id: userId },
+			select: ['id', 'role'],
+		});
 		if (!user) {
 			throw new NotFoundException('User not found');
 		}
 
-		return this.appointmentRepository.find({
+		if (![Role.ADMIN as string, Role.USER as string].includes(user.role)) {
+			throw new BadRequestException('Role Not found');
+		}
+
+		if (user.role === (Role.ADMIN as string)) {
+			const appointments = await this.appointmentRepository.find({
+				where: {
+					appointment_date: Between(new Date(query.from), new Date(query.to)),
+				},
+				relations: ['doctor_service.doctor', 'doctor_service.service', 'user'],
+			});
+			const appointmentDto = new AppointmentDto();
+			return appointmentDto.adminAppointmentListResponseDto(appointments);
+		}
+
+		return await this.appointmentRepository.find({
 			where: {
 				user_id: userId,
 				appointment_date: Between(new Date(query.from), new Date(query.to)),

@@ -55,7 +55,7 @@ export class UserService {
 	async create(user: UserDto): Promise<User> {
 		const { address, ...userWithoutAddress } = user;
 		const checkUser = await this.userRepository.findOne({
-			where: { username: user.username },
+			where: [{ username: user.username }, { email_address: user.email_address }],
 			select: ['id'],
 		});
 		if (checkUser) {

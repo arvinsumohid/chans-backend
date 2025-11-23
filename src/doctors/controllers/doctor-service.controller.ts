@@ -33,4 +33,9 @@ export class DoctorServiceController {
 			200,
 		);
 	}
+
+	@Get('service/:service_id')
+	async getDoctorsByService(@Param('service_id') service_id: string) {
+		return ApiResponse(await this.doctorServiceService.getDoctorsByService(service_id), 'Doctor services found successfully', 200);
+	}
 }

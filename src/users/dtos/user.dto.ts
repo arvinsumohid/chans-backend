@@ -3,6 +3,7 @@ import { Gender, Role } from '../enum/user.enum';
 import { ApiProperty } from '@nestjs/swagger';
 import { AddressDto } from '@/addresses/dtos/address.dto';
 import { Type } from 'class-transformer';
+import { User } from '../entities/user.entity';
 
 export class UserDto {
 	@ApiProperty()
@@ -70,4 +71,15 @@ export class UserDto {
 	@ValidateNested()
 	@Type(() => AddressDto)
 	address: AddressDto;
+
+	public static usersListResponseDto(users: User[]): User[] {
+		return users.map((user) => {
+			return this.userResponseDto(user);
+		});
+	}
+
+	public static userResponseDto(user: User): User {
+		const { birthdate, description, email_address, firstname, gender, id, lastname, middlename, phone_number, username } = user;
+		return { birthdate, description, email_address, firstname, gender, id, lastname, middlename, phone_number, username } as User;
+	}
 }

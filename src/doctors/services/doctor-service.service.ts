@@ -44,6 +44,14 @@ export class DoctorServiceService {
 		return doctorServices;
 	}
 
+	async getDoctorsByService(service_id: string): Promise<DoctorServices[]> {
+		const doctorServices = await this.doctorServiceRepository.find({
+			where: { service_id },
+			relations: ['doctor'],
+		});
+		return doctorServices;
+	}
+
 	async deleteServicesByDoctor(doctor_id: string, service_id: string): Promise<void> {
 		const existing = await this.doctorServiceRepository.find({
 			where: {

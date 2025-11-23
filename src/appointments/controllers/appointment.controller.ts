@@ -13,8 +13,16 @@ export class AppointmentController {
 	constructor(private readonly appointmentService: AppointmentService) {}
 
 	@Post()
-	async createAppointment(@Body() createAppointmentDto: CreateAppointmentDto): Promise<ApiResponseDto> {
-		return ApiResponse(await this.appointmentService.createAppointment(createAppointmentDto), 'Appointment created successfully', 201);
+	async createAppointment(
+		@Request() req: { user: { id: string } },
+		@Body() createAppointmentDto: CreateAppointmentDto,
+	): Promise<ApiResponseDto> {
+		const userId: string = req.user.id;
+		return ApiResponse(
+			await this.appointmentService.createAppointment(userId, createAppointmentDto),
+			'Appointment created successfully',
+			201,
+		);
 	}
 
 	@Get()
@@ -23,8 +31,8 @@ export class AppointmentController {
 	}
 
 	@Get('calendar')
-	async findCalendar(@Request() req, @Query() query: QueryCalendarDto): Promise<ApiResponseDto> {
-		const userId: string = req.user.id as string;
+	async findCalendar(@Request() req: { user: { id: string } }, @Query() query: QueryCalendarDto): Promise<ApiResponseDto> {
+		const userId: string = req.user.id;
 		return ApiResponse(await this.appointmentService.findCalendar(userId, query), 'Appointments found successfully', 200);
 	}
 
