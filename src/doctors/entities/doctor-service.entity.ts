@@ -12,7 +12,7 @@ import {
 } from 'typeorm';
 import { Doctor } from '../entities/doctor.entity';
 import { Service } from '../../services/entities/service.entity';
-import { Appointment } from '../../appointments/entities/appointment.entity';
+import { Event } from '../../events/entities/event.entity';
 import { v4 as uuidv4 } from 'uuid';
 
 @Entity('doctor_services')
@@ -23,9 +23,9 @@ export class DoctorServices {
 	@Column({ type: 'char', length: 36 })
 	doctor_id: string;
 
-	@OneToMany(() => Appointment, (appointment) => appointment.doctor_service)
+	@OneToMany(() => Event, (event) => event.doctor_service)
 	@JoinColumn({ name: 'id' })
-	appointments: Appointment[];
+	events: Event[];
 
 	@ManyToOne(() => Doctor, (doctor) => doctor.doctor_services)
 	@JoinColumn({ name: 'doctor_id' })
