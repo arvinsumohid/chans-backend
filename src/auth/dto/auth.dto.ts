@@ -13,3 +13,10 @@ export class LoginDto {
 	@IsString()
 	password: string;
 }
+
+export class UserRequest {
+	user: {
+		id: string;
+		role: string;
+	};
+}

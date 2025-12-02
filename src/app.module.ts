@@ -10,13 +10,13 @@ import AppDataSource from './data-source';
 import { AddressModule } from './addresses/address.module';
 import { DoctorModule } from './doctors/doctor.module';
 import { ServiceModule } from './services/service.module';
-import { AppointmentModule } from './appointments/appointment.module';
+import { EventModule } from './events/event.module';
 
 @Module({
 	imports: [
 		AuthModule,
 		AddressModule,
-		AppointmentModule,
+		EventModule,
 		DoctorModule,
 		ServiceModule,
 		UserModule,

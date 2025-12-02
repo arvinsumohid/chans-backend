@@ -13,8 +13,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { DoctorServices } from '../../doctors/entities/doctor-service.entity';
 import { User } from '@/users/entities/user.entity';
 
-@Entity('appointments')
-export class Appointment {
+@Entity('events')
+export class Event {
 	@PrimaryColumn({ type: 'char', length: 36, default: () => 'UUID()' })
 	id: string;
 
@@ -28,12 +28,15 @@ export class Appointment {
 	@Column({ type: 'varchar', length: 36 })
 	doctor_service_id: string;
 
-	@ManyToOne(() => DoctorServices, (doctorServices) => doctorServices.appointments)
+	@Column({ type: 'varchar', length: 36 })
+	type: string;
+
+	@ManyToOne(() => DoctorServices, (doctorServices) => doctorServices.events)
 	@JoinColumn({ name: 'doctor_service_id' })
 	doctor_service: DoctorServices;
 
 	@Column({ type: 'date' })
-	appointment_date: Date;
+	event_date: Date;
 
 	@CreateDateColumn()
 	created_at: Date;
