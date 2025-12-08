@@ -23,7 +23,7 @@ export class DoctorServices {
 	@Column({ type: 'char', length: 36 })
 	doctor_id: string;
 
-	@OneToMany(() => Event, (event) => event.doctor_service)
+	@OneToMany(() => Event, (event) => event.entity_id)
 	@JoinColumn({ name: 'id' })
 	events: Event[];
 
