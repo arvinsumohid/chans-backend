@@ -8,3 +8,8 @@ export enum Role {
 	USER = 'user',
 	ADMIN = 'admin',
 }
+
+export enum EventType {
+	EVENT = 'event',
+	APPOINTMENT = 'appointment',
+}

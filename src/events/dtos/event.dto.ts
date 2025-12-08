@@ -1,9 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsDate } from 'class-validator';
+import { IsNotEmpty, IsString, IsDate, ValidateIf, IsEnum } from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 import { Event } from '../entities/event.entity';
 import { UserDto } from '@/users/dtos/user.dto';
 import { PaginationDto } from '@/common/common.dto';
+import { EventType } from '@/users/enum/user.enum';
 
 export class CreateEventDto {
 	@ApiProperty()
@@ -12,11 +13,13 @@ export class CreateEventDto {
 	user_id: string;
 
 	@ApiProperty()
+	@ValidateIf((o: { type: string }) => o.type === 'appointment')
 	@IsNotEmpty()
 	@IsString()
 	service_id: string;
 
 	@ApiProperty()
+	@ValidateIf((o: { type: string }) => o.type === 'appointment')
 	@IsNotEmpty()
 	@IsString()
 	doctor_id: string;
@@ -25,6 +28,21 @@ export class CreateEventDto {
 	@IsNotEmpty()
 	@IsDate()
 	event_date: Date;
+
+	@ApiProperty()
+	@ValidateIf((o: { type: string }) => o.type === 'event')
+	@IsNotEmpty()
+	name: string;
+
+	@ApiProperty()
+	@ValidateIf((o: { type: string }) => o.type === 'event')
+	@IsNotEmpty()
+	description: string;
+
+	@ApiProperty({ enum: EventType })
+	@IsNotEmpty()
+	@IsEnum(EventType)
+	type: EventType;
 }
 
 export class UpdateEventDto extends PartialType(CreateEventDto) {}
