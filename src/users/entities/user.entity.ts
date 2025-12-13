@@ -1,4 +1,5 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, BeforeInsert } from 'typeorm';
+import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, BeforeInsert, OneToOne } from 'typeorm';
+import { Address } from '@/addresses/entities/address.entity';
 import { v4 as uuidv4 } from 'uuid';
 
 @Entity('users')
@@ -7,6 +8,9 @@ export class User {
 	id: string;
 	@Column({ type: 'varchar', length: 100 })
 	username: string;
+
+	@OneToOne(() => Address, (address) => address.user)
+	address: Address;
 
 	@Column({ type: 'varchar', length: 255 })
 	password: string;
@@ -28,6 +32,9 @@ export class User {
 
 	@Column({ type: 'varchar', length: 50 })
 	gender: string;
+
+	@Column({ type: 'date' })
+	last_login_at: Date;
 
 	@Column()
 	phone_number: string;

@@ -36,12 +36,14 @@ export class EventController {
 	}
 
 	@Put(':id')
-	async update(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto): Promise<ApiResponseDto> {
-		return ApiResponse(await this.eventService.update(id, updateEventDto), 'Event updated successfully', 200);
+	async update(@Request() req: UserRequest, @Param('id') id: string, @Body() updateEventDto: UpdateEventDto): Promise<ApiResponseDto> {
+		const userId: string = req.user.id;
+		return ApiResponse(await this.eventService.update(userId, id, updateEventDto), 'Event updated successfully', 200);
 	}
 
 	@Delete(':id')
-	async delete(@Param('id') id: string): Promise<ApiResponseDto> {
-		return ApiResponse(await this.eventService.delete(id), 'Event deleted successfully', 200);
+	async delete(@Request() req: UserRequest, @Param('id') id: string): Promise<ApiResponseDto> {
+		const userId: string = req.user.id;
+		return ApiResponse(await this.eventService.delete(userId, id), 'Event deleted successfully', 200);
 	}
 }

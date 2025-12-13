@@ -3,7 +3,6 @@ import { ServiceRepository } from '../repositories/service.repository';
 import { CreateServiceDto, UpdateServiceDto } from '../dtos/service.dto';
 import { Service } from '../entities/service.entity';
 import { ListResponsePaginationDto, PaginationDto } from '../../common/common.dto';
-import { Like } from 'typeorm';
 
 @Injectable()
 export class ServiceService {
@@ -50,24 +49,6 @@ export class ServiceService {
 	}
 
 	async findAll(paginationDto: PaginationDto): Promise<ListResponsePaginationDto<Service>> {
-		const { page = 1, size = 10, search } = paginationDto;
-		const whereClause = {};
-		if (search) {
-			whereClause['name'] = Like(`%${search}%`);
-		}
-
-		const services = await this.serviceRepository.find({
-			where: whereClause,
-			relations: ['doctor_services', 'doctor_services.doctor'],
-			skip: (page - 1) * size,
-			take: size,
-			order: {
-				name: 'ASC',
-			},
-		});
-
-		const total = await this.serviceRepository.count({ where: whereClause });
-
-		return { items: services, total_item: total, page, size };
+		return await this.serviceRepository.findService(paginationDto);
 	}
 }

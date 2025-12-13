@@ -69,6 +69,16 @@ export class EventListDto extends PaginationDto {
 	@IsNotEmpty()
 	@IsString()
 	type: string;
+
+	@ApiProperty({ example: '' })
+	@ValidateIf((o: { from: string; to: string }) => o.to !== undefined)
+	@IsString()
+	from: string;
+
+	@ApiProperty({ example: '' })
+	@ValidateIf((o: { from: string; to: string }) => o.from !== undefined)
+	@IsString()
+	to: string;
 }
 
 export class EventDto {
