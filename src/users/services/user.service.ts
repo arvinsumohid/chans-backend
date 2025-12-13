@@ -5,6 +5,7 @@ import { User } from '../entities/user.entity';
 import { UserDto } from '../dtos/user.dto';
 import { AddressService } from '@/addresses/services/address.service';
 import { Role } from '../enum/user.enum';
+import { ListResponsePaginationDto, PaginationDto } from '@/common/common.dto';
 
 @Injectable()
 export class UserService {
@@ -14,8 +15,17 @@ export class UserService {
 		private addressService: AddressService,
 	) {}
 
-	async findAll(): Promise<User[]> {
-		return this.userRepository.find();
+	async findAll(userId: string, pagination: PaginationDto): Promise<ListResponsePaginationDto<User>> {
+		if (!userId) {
+			throw new BadRequestException('User not found');
+		}
+
+		const user = await this.userRepository.findOne({ where: { id: userId } });
+		if (!user) {
+			throw new BadRequestException('User not found');
+		}
+
+		return this.userRepository.findUsers(pagination);
 	}
 
 	async findOne(id: string): Promise<User> {

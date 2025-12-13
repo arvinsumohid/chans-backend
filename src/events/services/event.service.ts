@@ -12,6 +12,7 @@ import { ListResponsePaginationDto } from '@/common/common.dto';
 import { AnnouncementService } from '@/announcements/services/announcement.service';
 import { EventViewRepository } from '../repositories/event.view.repository';
 import { EventView } from '../entities/event.view.entity';
+import { AnnouncementRepository } from '@/announcements/repositories/announcement.repository';
 
 @Injectable()
 export class EventService {
@@ -23,6 +24,7 @@ export class EventService {
 		private readonly doctorRepository: DoctorRepository,
 		private readonly doctorServiceRepository: DoctorServiceRepository,
 		private readonly announcementService: AnnouncementService,
+		private readonly announcementRepository: AnnouncementRepository,
 	) {}
 
 	async createEvent(userId: string, createEventDto: CreateEventDto): Promise<Event> {
@@ -99,10 +101,9 @@ export class EventService {
 		return await this.eventViewRepository.findEvents(user, query);
 	}
 
-	async findOne(id: string): Promise<Event> {
-		const event = await this.eventRepository.findOne({
-			where: { id },
-			relations: ['doctor_service.doctor', 'doctor_service.service'],
+	async findOne(id: string): Promise<EventView> {
+		const event = await this.eventViewRepository.findOne({
+			where: { event_id: id },
 		});
 		if (!event) {
 			throw new NotFoundException('Event not found');
@@ -130,26 +131,88 @@ export class EventService {
 		return await this.eventViewRepository.findEventsCalendar(user, query);
 	}
 
-	async update(id: string, updateEventDto: UpdateEventDto): Promise<Event> {
+	async update(userId: string, id: string, updateEventDto: UpdateEventDto): Promise<Event> {
 		const event = await this.eventRepository.findOne({ where: { id } });
+		let updatedEvent: Event;
 		if (!event) {
 			throw new NotFoundException('Event not found');
 		}
 
-		const updatedEvent = this.eventRepository.create({
-			...event,
-			...updateEventDto,
-			id,
-		});
+		if (event.user_id !== userId) {
+			throw new BadRequestException('Unauthorized to update');
+		}
 
-		return this.eventRepository.save(updatedEvent);
+		if (event.event_date < new Date()) {
+			throw new BadRequestException('Event date is in the past');
+		}
+
+		if (updateEventDto.type === EventType.EVENT) {
+			// event update
+			const announcement = await this.announcementRepository.findOne({ where: { id: event.entity_id } });
+			if (!announcement) {
+				throw new NotFoundException('Announcement not found');
+			}
+
+			const updatedAnnouncement = this.announcementRepository.create({
+				...announcement,
+				name: updateEventDto.name,
+				description: updateEventDto.description,
+			});
+
+			await this.announcementRepository.save(updatedAnnouncement);
+
+			updatedEvent = this.eventRepository.create({
+				...event,
+				event_date: new Date(updateEventDto.event_date),
+				id,
+			});
+		} else if (updateEventDto.type === EventType.APPOINTMENT) {
+			// appointment update
+			const service = await this.serviceRepository.findOne({ where: { id: updateEventDto.service_id }, select: ['id'] });
+			if (!service) {
+				throw new NotFoundException('Service not found');
+			}
+
+			const doctor = await this.doctorRepository.findOne({ where: { id: updateEventDto.doctor_id }, select: ['id'] });
+			if (!doctor) {
+				throw new NotFoundException('Doctor not found');
+			}
+
+			const doctorService = await this.doctorServiceRepository.findOne({
+				where: {
+					doctor_id: doctor.id,
+					service_id: service.id,
+				},
+			});
+			if (!doctorService) {
+				throw new NotFoundException('Doctor service not found');
+			}
+
+			updatedEvent = this.eventRepository.create({
+				...event,
+				entity_id: doctorService.id,
+				event_date: new Date(updateEventDto.event_date),
+				id,
+			});
+		}
+
+		return await this.eventRepository.save(updatedEvent);
 	}
 
-	async delete(id: string): Promise<void> {
+	async delete(userId: string, id: string): Promise<void> {
 		const event = await this.eventRepository.findOne({ where: { id } });
 		if (!event) {
 			throw new NotFoundException('Event not found');
 		}
-		await this.eventRepository.delete(id);
+
+		if (event.user_id !== userId) {
+			throw new BadRequestException('Unauthorized to delete');
+		}
+
+		if (event.event_date < new Date()) {
+			throw new BadRequestException('Event date is in the past');
+		}
+
+		await this.eventRepository.softDelete(id);
 	}
 }

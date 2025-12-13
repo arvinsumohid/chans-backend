@@ -3,11 +3,13 @@ import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../../users/services/user.service';
 import { LoginDto } from '../dto/auth.dto';
 import { User } from '../../users/entities/user.entity';
+import { UserRepository } from '@/users/repositories/user.repository';
 
 @Injectable()
 export class AuthService {
 	constructor(
 		private userService: UserService,
+		private userRepository: UserRepository,
 		private jwtService: JwtService,
 	) {}
 
@@ -16,6 +18,10 @@ export class AuthService {
 		if (user && (await this.userService.validatePassword(password, user.password))) {
 			const { password, ...result } = user;
 			void password;
+
+			const last_login_at = new Date();
+			await this.userRepository.update(user.id, { last_login_at });
+
 			return result as User;
 		}
 		throw new UnauthorizedException('Invalid credentials');

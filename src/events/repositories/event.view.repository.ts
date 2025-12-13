@@ -13,7 +13,7 @@ export class EventViewRepository extends Repository<EventView> {
 	}
 
 	async findEvents(user: User, query: EventListDto): Promise<ListResponsePaginationDto<EventView>> {
-		const { page = 1, size = 10, type } = query;
+		const { page = 1, size = 10, type, search, from, to } = query;
 		const { role, id } = user;
 		const event = this.createQueryBuilder('events_vw').select('events_vw.*');
 		let totalEvent = 0;
@@ -21,8 +21,29 @@ export class EventViewRepository extends Repository<EventView> {
 		if (type && type !== 'all') {
 			event.andWhere('events_vw.entity_type = :entity_type', { entity_type: type });
 
+			if (search && search.includes('::')) {
+				const [searchType, searchValue] = search.split('::');
+				if (['user', 'doctor'].includes(searchType)) {
+					event.andWhere(
+						`(
+                        events_vw.${searchType}_firstname LIKE :search
+							OR 
+							events_vw.${searchType}_lastname LIKE :search
+						)`,
+						{ search: `%${searchValue}%` },
+					);
+				} else {
+					event.andWhere(`events_vw.${searchType} LIKE :search`, { search: `%${searchValue}%` });
+				}
+			}
+
+			if (from && to) {
+				event.andWhere('events_vw.event_date >= :from', { from: new Date(from) });
+				event.andWhere('events_vw.event_date <= :to', { to: new Date(to) });
+			}
+
 			// user get own appointment, if not admin
-			if (query.type === (EventType.APPOINTMENT as string) && role !== (Role.ADMIN as string)) {
+			if (type === (EventType.APPOINTMENT as string) && role !== (Role.ADMIN as string)) {
 				event.andWhere('events_vw.user_id = :user_id', { user_id: id });
 			}
 		} else {
@@ -41,7 +62,11 @@ export class EventViewRepository extends Repository<EventView> {
 			}
 		}
 
-		event.andWhere('events_vw.event_date >= :event_date', { event_date: new Date() }).orderBy('events_vw.event_date', 'ASC');
+		if (!from && !to) {
+			event.andWhere('events_vw.event_date >= :event_date', { event_date: new Date() }).orderBy('events_vw.event_date', 'ASC');
+		}
+
+		event.andWhere('events_vw.event_deleted_at IS NULL');
 
 		// get total event
 		totalEvent = await event.getCount();
