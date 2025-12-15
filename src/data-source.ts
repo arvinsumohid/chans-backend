@@ -25,8 +25,8 @@ const AppDataSource = new DataSource({
 	entities: [entitiesPath],
 	migrations: [migrationsPath],
 	migrationsTableName: 'migrations',
-	seeds: ['src/seeds/**/*{.ts,.js}'],
-	// seeds: [seederPath],
+	// seeds: ['src/seeds/**/*{.ts,.js}'],
+	seeds: [seederPath],
 	synchronize: false,
 	logging: !isProduction,
 } as DataSourceOptions & SeederOptions);

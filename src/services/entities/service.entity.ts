@@ -4,7 +4,7 @@ import { DoctorServices } from '../../doctors/entities/doctor-service.entity';
 
 @Entity('services')
 export class Service {
-	@PrimaryColumn({ type: 'char', length: 36, default: () => 'UUID()' })
+	@PrimaryColumn({ type: 'char', length: 36 })
 	id: string;
 
 	@Column({ type: 'varchar', length: 100 })
