@@ -110,6 +110,7 @@ export class UserDto {
 		userRes.role = raw.role;
 		userRes.is_active = raw.is_active;
 		userRes.last_login_at = raw.last_login_at;
+		userRes.is_bhw = raw.is_bhw;
 
 		return userRes;
 	}
@@ -154,4 +155,5 @@ export class UserRawDto {
 	created_at: Date;
 	updated_at: Date;
 	deleted_at: Date;
+	is_bhw: boolean;
 }

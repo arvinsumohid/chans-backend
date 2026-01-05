@@ -48,6 +48,9 @@ export class User {
 	@Column({ type: 'boolean' })
 	is_active: boolean;
 
+	@Column({ type: 'boolean' })
+	is_bhw: boolean;
+
 	@CreateDateColumn()
 	created_at: Date;
 
