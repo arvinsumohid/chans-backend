@@ -66,8 +66,6 @@ export class EventViewRepository extends Repository<EventView> {
 			event.andWhere('events_vw.event_date >= :event_date', { event_date: new Date() }).orderBy('events_vw.event_date', 'ASC');
 		}
 
-		event.andWhere('events_vw.event_deleted_at IS NULL');
-
 		// get total event
 		totalEvent = await event.getCount();
 

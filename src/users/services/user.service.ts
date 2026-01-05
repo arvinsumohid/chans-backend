@@ -99,4 +99,16 @@ export class UserService {
 	async validatePassword(password: string, hashed: string): Promise<boolean> {
 		return await bcrypt.compare(password, hashed);
 	}
+
+	async updateIsBhw(userId: string, id: string, isBhw: boolean): Promise<User> {
+		const user = await this.userRepository.findOne({ where: { id } });
+		const userAdmin = await this.userRepository.findOne({ where: { id: userId } });
+		if (!user) {
+			throw new BadRequestException('User not found');
+		}
+		if ((userAdmin.role as Role) !== Role.ADMIN) {
+			throw new BadRequestException('User not admin');
+		}
+		return this.userRepository.save({ ...user, is_bhw: isBhw });
+	}
 }

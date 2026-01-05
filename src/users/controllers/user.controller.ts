@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Query, UseGuards, Request, Put } from '@nestjs/common';
 import { UserService } from '../services/user.service';
 import { UserDto } from '../dtos/user.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -28,5 +28,18 @@ export class UserController {
 	@UseGuards(AuthGuard('jwt'))
 	async findOne(@Param('id') id: string): Promise<ApiResponseDto> {
 		return ApiResponse(await this.userService.findOne(id), 'User found successfully', 200);
+	}
+
+	@Put(':id/bhw')
+	@ApiBearerAuth('access-token')
+	@UseGuards(AuthGuard('jwt'))
+	async updateIsBhw(
+		@Param('id') id: string,
+		@Request() req: { user: { id: string } },
+		@Body() body: { is_bhw: boolean },
+	): Promise<ApiResponseDto> {
+		const userId = req.user.id;
+		const isBhw = body.is_bhw;
+		return ApiResponse(await this.userService.updateIsBhw(userId, id, isBhw), 'User updated successfully', 200);
 	}
 }
