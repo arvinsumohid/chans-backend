@@ -205,10 +205,6 @@ export class EventService {
 			throw new NotFoundException('Event not found');
 		}
 
-		if (event.user_id !== userId) {
-			throw new BadRequestException('Unauthorized to delete');
-		}
-
 		if (event.event_date < new Date()) {
 			throw new BadRequestException('Event date is in the past');
 		}

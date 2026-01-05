@@ -44,6 +44,6 @@ export class EventController {
 	@Delete(':id')
 	async delete(@Request() req: UserRequest, @Param('id') id: string): Promise<ApiResponseDto> {
 		const userId: string = req.user.id;
-		return ApiResponse(await this.eventService.delete(userId, id), 'Event deleted successfully', 200);
+		return ApiResponse(await this.eventService.delete(userId, id), 'Event canceled successfully', 200);
 	}
 }
