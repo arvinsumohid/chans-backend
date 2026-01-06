@@ -22,7 +22,7 @@ export default class AdminSeeder implements Seeder {
 				email_address: process.env.ADMIN_EMAIL || 'admin@example.com',
 				birthdate: new Date('1990-01-01'),
 				gender: 'male',
-				phone_number: '',
+				phone_number: process.env.ADMIN_PHONE_NUMBER || '',
 				description: 'System Administrator',
 				role: Role.ADMIN,
 				is_active: true,
