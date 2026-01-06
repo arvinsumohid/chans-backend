@@ -90,7 +90,18 @@ export class EventService {
 		}
 
 		const event = this.eventRepository.create(eventData);
-		return this.eventRepository.save(event);
+		const savedEvent = await this.eventRepository.save(event);
+
+		if (!savedEvent) {
+			throw new NotFoundException('Something went wrong');
+		}
+
+		if ((savedEvent.entity_type as EventType) === EventType.EVENT) {
+			await this.sendSmsToBhw(savedEvent);
+		} else if ((savedEvent.entity_type as EventType) === EventType.APPOINTMENT) {
+			await this.sendSmsToAdmin(savedEvent);
+		}
+		return savedEvent;
 	}
 
 	async findAll(req: UserRequest, query: EventListDto): Promise<ListResponsePaginationDto<EventView>> {
@@ -166,6 +177,8 @@ export class EventService {
 				event_date: new Date(updateEventDto.event_date),
 				id,
 			});
+
+			await this.sendSmsToBhw(updatedEvent);
 		} else if (updateEventDto.type === EventType.APPOINTMENT) {
 			// appointment update
 			const service = await this.serviceRepository.findOne({ where: { id: updateEventDto.service_id }, select: ['id'] });
@@ -194,6 +207,8 @@ export class EventService {
 				event_date: new Date(updateEventDto.event_date),
 				id,
 			});
+
+			await this.sendSmsToBhw(updatedEvent);
 		}
 
 		return await this.eventRepository.save(updatedEvent);
@@ -209,6 +224,35 @@ export class EventService {
 			throw new BadRequestException('Event date is in the past');
 		}
 
+		// this means admin is deleting the event
+		if ((event.entity_type as EventType) === EventType.APPOINTMENT) {
+			if (userId !== event.user_id) {
+				await this.sendSmsToAdmin(event);
+			} else {
+				await this.sendSmsToUser(event, userId);
+			}
+		} else if ((event.entity_type as EventType) === EventType.EVENT) {
+			await this.sendSmsToBhw(event);
+		}
+
 		await this.eventRepository.softDelete(id);
+	}
+
+	async sendSmsToBhw(event: Event) {
+		const users = await this.userRepository.find({ where: { is_bhw: true } });
+
+		// send sms to bhw
+	}
+
+	async sendSmsToAdmin(event: Event) {
+		const users = await this.userRepository.find({ where: { role: Role.ADMIN as string } });
+
+		// send sms to admin
+	}
+
+	async sendSmsToUser(event: Event, userId: string) {
+		const user = await this.userRepository.findOne({ where: { id: userId } });
+
+		// send sms to admin
 	}
 }
