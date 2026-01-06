@@ -1,16 +1,31 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { UserRepository } from '../repositories/user.repository';
 import { User } from '../entities/user.entity';
 import { UserDto } from '../dtos/user.dto';
+import { AddressService } from '@/addresses/services/address.service';
+import { Role } from '../enum/user.enum';
+import { ListResponsePaginationDto, PaginationDto } from '@/common/common.dto';
 
 @Injectable()
 export class UserService {
 	private readonly SALT_ROUNDS = 10;
-	constructor(private userRepository: UserRepository) {}
+	constructor(
+		private userRepository: UserRepository,
+		private addressService: AddressService,
+	) {}
 
-	async findAll(): Promise<User[]> {
-		return this.userRepository.find();
+	async findAll(userId: string, pagination: PaginationDto): Promise<ListResponsePaginationDto<User>> {
+		if (!userId) {
+			throw new BadRequestException('User not found');
+		}
+
+		const user = await this.userRepository.findOne({ where: { id: userId } });
+		if (!user) {
+			throw new BadRequestException('User not found');
+		}
+
+		return this.userRepository.findUsers(pagination);
 	}
 
 	async findOne(id: string): Promise<User> {
@@ -34,7 +49,7 @@ export class UserService {
 			],
 		});
 		if (!user) {
-			throw new Error('User not found');
+			throw new BadRequestException('User not found');
 		}
 		return user;
 	}
@@ -42,25 +57,31 @@ export class UserService {
 	async findByUsername(username: string): Promise<User> {
 		const user = await this.userRepository.findOne({ where: { username } });
 		if (!user) {
-			throw new Error('User not found');
+			throw new BadRequestException('User not found');
 		}
 		return user;
 	}
 
 	async create(user: UserDto): Promise<User> {
+		const { address, ...userWithoutAddress } = user;
 		const checkUser = await this.userRepository.findOne({
-			where: { username: user.username },
+			where: [{ username: user.username }, { email_address: user.email_address }],
 			select: ['id'],
 		});
 		if (checkUser) {
-			throw new Error('User already exists');
+			throw new BadRequestException('User already exists');
 		}
 
-		const hashed = await this.hashPassword(user.password);
-		user.password = hashed;
+		const hashed = await this.hashPassword(userWithoutAddress.password);
+		userWithoutAddress.password = hashed;
+		userWithoutAddress.role = Role.USER;
+		userWithoutAddress.is_active = true;
 
-		const newUser = this.userRepository.create(user);
-		return this.userRepository.save(newUser);
+		const newUser = this.userRepository.create(userWithoutAddress);
+		const savedUser = await this.userRepository.save(newUser);
+
+		await this.addressService.create({ user_id: savedUser.id, ...address });
+		return savedUser;
 	}
 
 	async update(id: string, user: UserDto): Promise<User> {
@@ -77,5 +98,17 @@ export class UserService {
 
 	async validatePassword(password: string, hashed: string): Promise<boolean> {
 		return await bcrypt.compare(password, hashed);
+	}
+
+	async updateIsBhw(userId: string, id: string, isBhw: boolean): Promise<User> {
+		const user = await this.userRepository.findOne({ where: { id } });
+		const userAdmin = await this.userRepository.findOne({ where: { id: userId } });
+		if (!user) {
+			throw new BadRequestException('User not found');
+		}
+		if ((userAdmin.role as Role) !== Role.ADMIN) {
+			throw new BadRequestException('User not admin');
+		}
+		return this.userRepository.save({ ...user, is_bhw: isBhw });
 	}
 }
