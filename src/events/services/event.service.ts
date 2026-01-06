@@ -26,7 +26,7 @@ export class EventService {
 		private readonly doctorServiceRepository: DoctorServiceRepository,
 		private readonly announcementService: AnnouncementService,
 		private readonly announcementRepository: AnnouncementRepository,
-	) {}
+	) { }
 
 	async createEvent(userId: string, createEventDto: CreateEventDto): Promise<Event> {
 		if (userId !== createEventDto.user_id) {
@@ -97,10 +97,16 @@ export class EventService {
 			throw new NotFoundException('Something went wrong');
 		}
 
-		if ((savedEvent.entity_type as EventType) === EventType.EVENT) {
-			await this.sendSmsToBhw(savedEvent);
-		} else if ((savedEvent.entity_type as EventType) === EventType.APPOINTMENT) {
-			await this.sendSmsToAdmin(savedEvent);
+		const eventView = await this.eventViewRepository.findOne({
+			where: { event_id: savedEvent.id }
+		});
+
+		if (eventView) {
+			if ((savedEvent.entity_type as EventType) === EventType.EVENT) {
+				await this.sendSmsToBhw(eventView, 'created');
+			} else if ((savedEvent.entity_type as EventType) === EventType.APPOINTMENT) {
+				await this.sendSmsToAdmin(eventView, 'created');
+			}
 		}
 		return savedEvent;
 	}
@@ -179,7 +185,12 @@ export class EventService {
 				id,
 			});
 
-			await this.sendSmsToBhw(updatedEvent);
+			const eventView = await this.eventViewRepository.findOne({
+				where: { event_id: updatedEvent.id }
+			});
+			if (eventView) {
+				await this.sendSmsToBhw(eventView, 'updated');
+			}
 		} else if (updateEventDto.type === EventType.APPOINTMENT) {
 			// appointment update
 			const service = await this.serviceRepository.findOne({ where: { id: updateEventDto.service_id }, select: ['id'] });
@@ -209,7 +220,12 @@ export class EventService {
 				id,
 			});
 
-			await this.sendSmsToBhw(updatedEvent);
+			const eventView = await this.eventViewRepository.findOne({
+				where: { event_id: updatedEvent.id }
+			});
+			if (eventView) {
+				await this.sendSmsToAdmin(eventView, 'updated');
+			}
 		}
 
 		return await this.eventRepository.save(updatedEvent);
@@ -225,45 +241,145 @@ export class EventService {
 			throw new BadRequestException('Event date is in the past');
 		}
 
-		// this means admin is deleting the event
-		if ((event.entity_type as EventType) === EventType.APPOINTMENT) {
-			if (userId !== event.user_id) {
-				await this.sendSmsToAdmin(event);
-			} else {
-				await this.sendSmsToUser(event, userId);
+		const eventView = await this.eventViewRepository.findOne({
+			where: { event_id: event.id }
+		});
+
+		if (eventView) {
+			if ((event.entity_type as EventType) === EventType.APPOINTMENT) {
+				if (userId !== event.user_id) {
+					await this.sendSmsToAdmin(eventView, 'deleted');
+				} else {
+					await this.sendSmsToUser(eventView, userId, 'deleted');
+				}
+			} else if ((event.entity_type as EventType) === EventType.EVENT) {
+				await this.sendSmsToBhw(eventView, 'deleted');
 			}
-		} else if ((event.entity_type as EventType) === EventType.EVENT) {
-			await this.sendSmsToBhw(event);
 		}
 
 		await this.eventRepository.softDelete(id);
 	}
 
-	async sendSmsToBhw(event: Event) {
+	private getEventTypeText(eventType: string): string {
+		return eventType === EventType.APPOINTMENT ? 'Appointment' : 'Event';
+	}
+
+	async sendSmsToBhw(eventView: EventView, action: 'created' | 'updated' | 'deleted' = 'updated') {
 		const users = await this.userRepository.find({ where: { is_bhw: true } });
 		const phoneNumber = users.map((user) => user.phone_number).filter(Boolean);
-		const message = `Event has been changed`;
+		const eventType = this.getEventTypeText(eventView.entity_type);
+
+		let actionText = '';
+		switch (action) {
+			case 'created':
+				actionText = 'New';
+				break;
+			case 'updated':
+				actionText = 'Updated';
+				break;
+			case 'deleted':
+				actionText = 'Cancelled';
+				break;
+		}
+
+		let message = `[${eventType} ${actionText}]\n\n` +
+			`Upcoming Community Event Notification\n\n` +
+			`Event: ${eventView.announcement_name || 'New Event'}\n` +
+			`Date: ${eventView.event_date ? new Date(eventView.event_date).toLocaleDateString('en-US', {
+				year: 'numeric',
+				month: 'long',
+				day: 'numeric'
+			}) : 'To be announced'}\n` +
+			`Details: ${eventView.announcement_description || 'Join us for this special event.'}\n\n` +
+			`Please mark your calendars and stay tuned for more details.`;
+
+		console.log(`Sending SMS to BHW (${action}):`, message);
 
 		// send sms to bhw
 		await sendSmsIProg(phoneNumber.join(','), message, true);
 	}
 
-	async sendSmsToAdmin(event: Event) {
+	async sendSmsToAdmin(eventView: EventView, action: 'created' | 'updated' | 'deleted' = 'updated') {
 		const users = await this.userRepository.find({ where: { role: Role.ADMIN as string } });
 		const phoneNumber = users.map((user) => user.phone_number).filter(Boolean);
-		const message = `Event has been changed`;
+		const eventType = this.getEventTypeText(eventView.entity_type);
 
-		console.log('should be send to admin');
+		let actionText = '';
+		switch (action) {
+			case 'created':
+				actionText = 'New';
+				break;
+			case 'updated':
+				actionText = 'Updated';
+				break;
+			case 'deleted':
+				actionText = 'Cancelled';
+				break;
+		}
+
+		const message = `[${eventType} ${actionText}]\n\n` +
+			`Date: ${eventView.event_date ? new Date(eventView.event_date).toLocaleDateString('en-US', {
+				year: 'numeric',
+				month: 'long',
+				day: 'numeric'
+			}) : 'N/A'}\n` +
+			`Patient: ${eventView.user_firstname || 'N/A'} ${eventView.user_lastname || ''}\n` +
+			`Service: ${eventView.service_name || 'N/A'}\n` +
+			`Doctor: ${eventView.doctor_firstname || 'N/A'} ${eventView.doctor_lastname || ''}\n\n` +
+			`Please check the system for more details.`;
+
+		console.log(`Sending SMS to Admin (${action}):`, message);
 		// send sms to admin
 		await sendSmsIProg(phoneNumber.join(','), message, true);
 	}
 
-	async sendSmsToUser(event: Event, userId: string) {
+	async sendSmsToUser(eventView: EventView, userId: string, action: 'created' | 'updated' | 'deleted' = 'updated') {
 		const user = await this.userRepository.findOne({ where: { id: userId } });
-		const phoneNumber = user.phone_number;
-		const message = `Event has been changed`;
+		if (!user || !user.phone_number) return;
 
-		// send sms to admin
+		const phoneNumber = user.phone_number;
+		const eventType = this.getEventTypeText(eventView.entity_type);
+
+		let actionText = '';
+		switch (action) {
+			case 'created':
+				actionText = 'scheduled';
+				break;
+			case 'updated':
+				actionText = 'updated';
+				break;
+			case 'deleted':
+				actionText = 'cancelled';
+				break;
+		}
+
+		let message = '';
+		if (action === 'deleted') {
+			message = `Your ${eventType} has been ${actionText}.\n\n` +
+				`Date: ${eventView.event_date ? new Date(eventView.event_date).toLocaleDateString('en-US', {
+					year: 'numeric',
+					month: 'long',
+					day: 'numeric'
+				}) : 'N/A'}\n` +
+				`Service: ${eventView.service_name || 'N/A'}\n` +
+				`Doctor: ${eventView.doctor_firstname || 'N/A'} ${eventView.doctor_lastname || ''}\n\n` +
+				`If you have any questions, please contact us.`;
+		} else {
+			message = `Your ${eventType} has been ${actionText}.\n\n` +
+				`Date: ${eventView.event_date ? new Date(eventView.event_date).toLocaleDateString('en-US', {
+					year: 'numeric',
+					month: 'long',
+					day: 'numeric'
+				}) : 'N/A'}\n` +
+				`Service: ${eventView.service_name || 'N/A'}\n` +
+				`Doctor: ${eventView.doctor_firstname || 'N/A'} ${eventView.doctor_lastname || ''}\n\n` +
+				`Thank you for using our service.`;
+		}
+
+		console.log(`Sending SMS to User (${action}):`, message);
+
+		console.log('Sending SMS to User:', message);
+		// send sms to user
 		await sendSmsIProg(phoneNumber, message);
 	}
 }
