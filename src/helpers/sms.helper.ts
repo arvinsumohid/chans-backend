@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const sendSms = async (phoneNumber: string, message: string): Promise<any> => {
+export const sendSmsITexMo = async (phoneNumber: string, message: string): Promise<any> => {
 	try {
 		const data = {
 			Email: process.env.SMS_EMAIL,
@@ -22,3 +22,17 @@ export const sendSms = async (phoneNumber: string, message: string): Promise<any
 		console.log(error);
 	}
 };
+
+export const sendSmsIProg = async (phoneNumber: string, message: string, isBulk = false): Promise<any> => {
+	try {
+		const url = `https://api.iprog.id/api/v1/sms_messages${isBulk && '/send_bulk'}`;
+		const response = await axios.post(url, {
+			api_token: process.env.SMS_API_TOKEN,
+			phone_number: phoneNumber,
+			message,
+		});
+		return response.data;
+	} catch (error) {
+		console.log(error);
+	}
+}

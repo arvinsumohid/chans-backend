@@ -13,6 +13,7 @@ import { AnnouncementService } from '@/announcements/services/announcement.servi
 import { EventViewRepository } from '../repositories/event.view.repository';
 import { EventView } from '../entities/event.view.entity';
 import { AnnouncementRepository } from '@/announcements/repositories/announcement.repository';
+import { sendSmsIProg } from '@/helpers/sms.helper';
 
 @Injectable()
 export class EventService {
@@ -240,19 +241,29 @@ export class EventService {
 
 	async sendSmsToBhw(event: Event) {
 		const users = await this.userRepository.find({ where: { is_bhw: true } });
+		const phoneNumber = users.map((user) => user.phone_number).filter(Boolean);
+		const message = `Event has been changed`;
 
 		// send sms to bhw
+		await sendSmsIProg(phoneNumber.join(','), message);
 	}
 
 	async sendSmsToAdmin(event: Event) {
 		const users = await this.userRepository.find({ where: { role: Role.ADMIN as string } });
+		const phoneNumber = users.map((user) => user.phone_number).filter(Boolean);
+		const message = `Event has been changed`;
 
+		console.log('should be send to admin');
 		// send sms to admin
+		await sendSmsIProg(phoneNumber.join(','), message);
 	}
 
 	async sendSmsToUser(event: Event, userId: string) {
 		const user = await this.userRepository.findOne({ where: { id: userId } });
+		const phoneNumber = user.phone_number;
+		const message = `Event has been changed`;
 
 		// send sms to admin
+		await sendSmsIProg(phoneNumber, message);
 	}
 }
