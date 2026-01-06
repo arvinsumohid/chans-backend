@@ -151,7 +151,7 @@ export class EventService {
 
 	async update(userId: string, id: string, updateEventDto: UpdateEventDto): Promise<Event> {
 		const event = await this.eventRepository.findOne({ where: { id } });
-		let updatedEvent: Event;
+		let updatedEvent: Event | undefined;
 		if (!event) {
 			throw new NotFoundException('Event not found');
 		}
@@ -179,18 +179,11 @@ export class EventService {
 
 			await this.announcementRepository.save(updatedAnnouncement);
 
-			updatedEvent = this.eventRepository.create({
+			updatedEvent = await this.eventRepository.create({
 				...event,
 				event_date: new Date(updateEventDto.event_date),
 				id,
 			});
-
-			const eventView = await this.eventViewRepository.findOne({
-				where: { event_id: updatedEvent.id }
-			});
-			if (eventView) {
-				await this.sendSmsToBhw(eventView, 'updated');
-			}
 		} else if (updateEventDto.type === EventType.APPOINTMENT) {
 			// appointment update
 			const service = await this.serviceRepository.findOne({ where: { id: updateEventDto.service_id }, select: ['id'] });
@@ -213,22 +206,31 @@ export class EventService {
 				throw new NotFoundException('Doctor service not found');
 			}
 
-			updatedEvent = this.eventRepository.create({
+			updatedEvent = await this.eventRepository.create({
 				...event,
 				entity_id: doctorService.id,
 				event_date: new Date(updateEventDto.event_date),
 				id,
 			});
+		}
 
-			const eventView = await this.eventViewRepository.findOne({
-				where: { event_id: updatedEvent.id }
-			});
-			if (eventView) {
+		if (!updatedEvent) {
+			throw new BadRequestException('Invalid event type');
+		}
+
+		const savedEvent = await this.eventRepository.save(updatedEvent);
+		const eventView = await this.eventViewRepository.findOne({
+			where: { event_id: savedEvent.id }
+		});
+		if (eventView) {
+			if (updateEventDto.type === EventType.EVENT) {
+				await this.sendSmsToBhw(eventView, 'updated');
+			} else if (updateEventDto.type === EventType.APPOINTMENT) {
 				await this.sendSmsToAdmin(eventView, 'updated');
 			}
 		}
 
-		return await this.eventRepository.save(updatedEvent);
+		return savedEvent;
 	}
 
 	async delete(userId: string, id: string): Promise<void> {
@@ -247,10 +249,10 @@ export class EventService {
 
 		if (eventView) {
 			if ((event.entity_type as EventType) === EventType.APPOINTMENT) {
-				if (userId !== event.user_id) {
+				if (userId === event.user_id) {
 					await this.sendSmsToAdmin(eventView, 'deleted');
 				} else {
-					await this.sendSmsToUser(eventView, userId, 'deleted');
+					await this.sendSmsToUser(eventView, event.user_id, 'deleted');
 				}
 			} else if ((event.entity_type as EventType) === EventType.EVENT) {
 				await this.sendSmsToBhw(eventView, 'deleted');
@@ -290,8 +292,7 @@ export class EventService {
 				month: 'long',
 				day: 'numeric'
 			}) : 'To be announced'}\n` +
-			`Details: ${eventView.announcement_description || 'Join us for this special event.'}\n\n` +
-			`Please mark your calendars and stay tuned for more details.`;
+			`Details: ${eventView.announcement_description || 'Join us for this special event.'}`;
 
 		console.log(`Sending SMS to BHW (${action}):`, message);
 
@@ -325,8 +326,7 @@ export class EventService {
 			}) : 'N/A'}\n` +
 			`Patient: ${eventView.user_firstname || 'N/A'} ${eventView.user_lastname || ''}\n` +
 			`Service: ${eventView.service_name || 'N/A'}\n` +
-			`Doctor: ${eventView.doctor_firstname || 'N/A'} ${eventView.doctor_lastname || ''}\n\n` +
-			`Please check the system for more details.`;
+			`Doctor: ${eventView.doctor_firstname || 'N/A'} ${eventView.doctor_lastname || ''}`;
 
 		console.log(`Sending SMS to Admin (${action}):`, message);
 		// send sms to admin
@@ -362,8 +362,7 @@ export class EventService {
 					day: 'numeric'
 				}) : 'N/A'}\n` +
 				`Service: ${eventView.service_name || 'N/A'}\n` +
-				`Doctor: ${eventView.doctor_firstname || 'N/A'} ${eventView.doctor_lastname || ''}\n\n` +
-				`If you have any questions, please contact us.`;
+				`Doctor: ${eventView.doctor_firstname || 'N/A'} ${eventView.doctor_lastname || ''}`;
 		} else {
 			message = `Your ${eventType} has been ${actionText}.\n\n` +
 				`Date: ${eventView.event_date ? new Date(eventView.event_date).toLocaleDateString('en-US', {
@@ -372,13 +371,10 @@ export class EventService {
 					day: 'numeric'
 				}) : 'N/A'}\n` +
 				`Service: ${eventView.service_name || 'N/A'}\n` +
-				`Doctor: ${eventView.doctor_firstname || 'N/A'} ${eventView.doctor_lastname || ''}\n\n` +
-				`Thank you for using our service.`;
+				`Doctor: ${eventView.doctor_firstname || 'N/A'} ${eventView.doctor_lastname || ''}`;
 		}
 
 		console.log(`Sending SMS to User (${action}):`, message);
-
-		console.log('Sending SMS to User:', message);
 		// send sms to user
 		await sendSmsIProg(phoneNumber, message);
 	}
