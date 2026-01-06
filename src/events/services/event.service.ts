@@ -245,7 +245,7 @@ export class EventService {
 		const message = `Event has been changed`;
 
 		// send sms to bhw
-		await sendSmsIProg(phoneNumber.join(','), message);
+		await sendSmsIProg(phoneNumber.join(','), message, true);
 	}
 
 	async sendSmsToAdmin(event: Event) {
@@ -255,7 +255,7 @@ export class EventService {
 
 		console.log('should be send to admin');
 		// send sms to admin
-		await sendSmsIProg(phoneNumber.join(','), message);
+		await sendSmsIProg(phoneNumber.join(','), message, true);
 	}
 
 	async sendSmsToUser(event: Event, userId: string) {
