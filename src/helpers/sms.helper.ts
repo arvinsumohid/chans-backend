@@ -25,9 +25,13 @@ export const sendSmsITexMo = async (phoneNumber: string, message: string): Promi
 
 export const sendSmsIProg = async (phoneNumber: string, message: string, isBulk = false): Promise<any> => {
 	try {
+		if (!process.env.SMS_API_TOKEN) {
+			console.log('SMS API token not found');
+			return;
+		}
+
 		const url = `https://www.iprogsms.com/api/v1/sms_messages${isBulk ? '/send_bulk' : ''}`;
 
-		console.log('url', url);
 		const response = await axios.post(url, {
 			api_token: process.env.SMS_API_TOKEN,
 			phone_number: phoneNumber,
