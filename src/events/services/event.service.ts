@@ -14,6 +14,7 @@ import { EventViewRepository } from '../repositories/event.view.repository';
 import { EventView } from '../entities/event.view.entity';
 import { AnnouncementRepository } from '@/announcements/repositories/announcement.repository';
 import { sendSmsIProg } from '@/helpers/sms.helper';
+import dayjs from '@/utils/dayjs-config.util';
 
 @Injectable()
 export class EventService {
@@ -26,7 +27,7 @@ export class EventService {
 		private readonly doctorServiceRepository: DoctorServiceRepository,
 		private readonly announcementService: AnnouncementService,
 		private readonly announcementRepository: AnnouncementRepository,
-	) { }
+	) {}
 
 	async createEvent(userId: string, createEventDto: CreateEventDto): Promise<Event> {
 		if (userId !== createEventDto.user_id) {
@@ -52,9 +53,11 @@ export class EventService {
 			throw new BadRequestException('Unauthorized to create event');
 		}
 
+		const phDate = dayjs(createEventDto.event_date).tz('Asia/Manila').format('YYYY-MM-DD');
+
 		const eventData: Partial<Event> = {
 			user_id: createEventDto.user_id,
-			event_date: new Date(createEventDto.event_date),
+			event_date: phDate as any,
 			entity_type: createEventDto.type,
 		};
 
@@ -98,7 +101,7 @@ export class EventService {
 		}
 
 		const eventView = await this.eventViewRepository.findOne({
-			where: { event_id: savedEvent.id }
+			where: { event_id: savedEvent.id },
 		});
 
 		if (eventView) {
@@ -179,9 +182,11 @@ export class EventService {
 
 			await this.announcementRepository.save(updatedAnnouncement);
 
-			updatedEvent = await this.eventRepository.create({
+			const phDate = dayjs(updateEventDto.event_date).tz('Asia/Manila').format('YYYY-MM-DD');
+
+			updatedEvent = this.eventRepository.create({
 				...event,
-				event_date: new Date(updateEventDto.event_date),
+				event_date: phDate as any,
 				id,
 			});
 		} else if (updateEventDto.type === EventType.APPOINTMENT) {
@@ -206,10 +211,12 @@ export class EventService {
 				throw new NotFoundException('Doctor service not found');
 			}
 
-			updatedEvent = await this.eventRepository.create({
+			const phDate = dayjs(updateEventDto.event_date).tz('Asia/Manila').format('YYYY-MM-DD');
+
+			updatedEvent = this.eventRepository.create({
 				...event,
 				entity_id: doctorService.id,
-				event_date: new Date(updateEventDto.event_date),
+				event_date: phDate as any,
 				id,
 			});
 		}
@@ -220,7 +227,7 @@ export class EventService {
 
 		const savedEvent = await this.eventRepository.save(updatedEvent);
 		const eventView = await this.eventViewRepository.findOne({
-			where: { event_id: savedEvent.id }
+			where: { event_id: savedEvent.id },
 		});
 		if (eventView) {
 			if (updateEventDto.type === EventType.EVENT) {
@@ -244,7 +251,7 @@ export class EventService {
 		}
 
 		const eventView = await this.eventViewRepository.findOne({
-			where: { event_id: event.id }
+			where: { event_id: event.id },
 		});
 
 		if (eventView) {
@@ -263,7 +270,7 @@ export class EventService {
 	}
 
 	private getEventTypeText(eventType: string): string {
-		return eventType === EventType.APPOINTMENT ? 'Appointment' : 'Event';
+		return (eventType as EventType) === EventType.APPOINTMENT ? 'Appointment' : 'Event';
 	}
 
 	async sendSmsToBhw(eventView: EventView, action: 'created' | 'updated' | 'deleted' = 'updated') {
@@ -284,14 +291,19 @@ export class EventService {
 				break;
 		}
 
-		let message = `[${eventType} ${actionText}]\n\n` +
+		const message =
+			`[${eventType} ${actionText}]\n\n` +
 			`Upcoming Community Event Notification\n\n` +
 			`Event: ${eventView.announcement_name || 'New Event'}\n` +
-			`Date: ${eventView.event_date ? new Date(eventView.event_date).toLocaleDateString('en-US', {
-				year: 'numeric',
-				month: 'long',
-				day: 'numeric'
-			}) : 'To be announced'}\n` +
+			`Date: ${
+				eventView.event_date
+					? new Date(eventView.event_date).toLocaleDateString('en-US', {
+							year: 'numeric',
+							month: 'long',
+							day: 'numeric',
+						})
+					: 'To be announced'
+			}\n` +
 			`Details: ${eventView.announcement_description || 'Join us for this special event.'}`;
 
 		console.log(`Sending SMS to BHW (${action}):`, message);
@@ -318,12 +330,17 @@ export class EventService {
 				break;
 		}
 
-		const message = `[${eventType} ${actionText}]\n\n` +
-			`Date: ${eventView.event_date ? new Date(eventView.event_date).toLocaleDateString('en-US', {
-				year: 'numeric',
-				month: 'long',
-				day: 'numeric'
-			}) : 'N/A'}\n` +
+		const message =
+			`[${eventType} ${actionText}]\n\n` +
+			`Date: ${
+				eventView.event_date
+					? new Date(eventView.event_date).toLocaleDateString('en-US', {
+							year: 'numeric',
+							month: 'long',
+							day: 'numeric',
+						})
+					: 'N/A'
+			}\n` +
 			`Patient: ${eventView.user_firstname || 'N/A'} ${eventView.user_lastname || ''}\n` +
 			`Service: ${eventView.service_name || 'N/A'}\n` +
 			`Doctor: ${eventView.doctor_firstname || 'N/A'} ${eventView.doctor_lastname || ''}`;
@@ -355,21 +372,31 @@ export class EventService {
 
 		let message = '';
 		if (action === 'deleted') {
-			message = `Your ${eventType} has been ${actionText}.\n\n` +
-				`Date: ${eventView.event_date ? new Date(eventView.event_date).toLocaleDateString('en-US', {
-					year: 'numeric',
-					month: 'long',
-					day: 'numeric'
-				}) : 'N/A'}\n` +
+			message =
+				`Your ${eventType} has been ${actionText}.\n\n` +
+				`Date: ${
+					eventView.event_date
+						? new Date(eventView.event_date).toLocaleDateString('en-US', {
+								year: 'numeric',
+								month: 'long',
+								day: 'numeric',
+							})
+						: 'N/A'
+				}\n` +
 				`Service: ${eventView.service_name || 'N/A'}\n` +
 				`Doctor: ${eventView.doctor_firstname || 'N/A'} ${eventView.doctor_lastname || ''}`;
 		} else {
-			message = `Your ${eventType} has been ${actionText}.\n\n` +
-				`Date: ${eventView.event_date ? new Date(eventView.event_date).toLocaleDateString('en-US', {
-					year: 'numeric',
-					month: 'long',
-					day: 'numeric'
-				}) : 'N/A'}\n` +
+			message =
+				`Your ${eventType} has been ${actionText}.\n\n` +
+				`Date: ${
+					eventView.event_date
+						? new Date(eventView.event_date).toLocaleDateString('en-US', {
+								year: 'numeric',
+								month: 'long',
+								day: 'numeric',
+							})
+						: 'N/A'
+				}\n` +
 				`Service: ${eventView.service_name || 'N/A'}\n` +
 				`Doctor: ${eventView.doctor_firstname || 'N/A'} ${eventView.doctor_lastname || ''}`;
 		}
