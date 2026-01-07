@@ -3,6 +3,7 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 import { setDataSource, SeederOptions } from 'typeorm-extension';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import { getAllFiles } from './helpers/file-getter.helper';
 
 dotenv.config();
 
@@ -12,7 +13,7 @@ const basePath = isProduction ? path.join(__dirname, '..') : __dirname;
 const entitiesPath = isProduction ? path.join(basePath, 'dist', '**', '*.entity.js') : path.join(basePath, '**', '*.entity.{ts,js}');
 
 const migrationsPath = isProduction ? path.join(basePath, 'dist', 'migrations', '*.js') : path.join(basePath, 'migrations', '*.{ts,js}');
-const seederPath = path.join(basePath, 'seeds', '**', '*.{ts,js}');
+const seederFiles = getAllFiles(path.join(basePath, 'seeds'));
 
 // Let typeorm-extension use default seeder paths
 const AppDataSource = new DataSource({
@@ -26,7 +27,7 @@ const AppDataSource = new DataSource({
 	migrations: [migrationsPath],
 	migrationsTableName: 'migrations',
 	// seeds: ['src/seeds/**/*{.ts,.js}'],
-	seeds: [seederPath],
+	seeds: seederFiles,
 	synchronize: false,
 	logging: !isProduction,
 } as DataSourceOptions & SeederOptions);
