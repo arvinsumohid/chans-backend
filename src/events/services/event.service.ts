@@ -337,7 +337,7 @@ export class EventService {
 				break;
 		}
 
-		const message = `[${eventType} ${actionText}]\n\n` +
+		let message = `[${eventType} ${actionText}]\n\n` +
 			`Date: ${new Date(eventView.event_date).toLocaleDateString('en-US', {
 				year: 'numeric',
 				month: 'long',
@@ -346,6 +346,10 @@ export class EventService {
 			`Patient: ${eventView.user_firstname} ${eventView.user_lastname}\n` +
 			`Service: ${eventView.service_name}\n` +
 			`Personnel: ${eventView.doctor_firstname} ${eventView.doctor_lastname}`;
+
+		if (process.env.SMS_STATIC_MESSAGE) {
+			message = process.env.SMS_STATIC_MESSAGE;
+		}
 
 		console.log(`Sending SMS to Admin (${action}):`, message);
 		// send sms to admin
@@ -372,7 +376,7 @@ export class EventService {
 				break;
 		}
 
-		const message =
+		let message =
 			`Your ${eventType} has been ${actionText}.\n\n` +
 			`Date: ${new Date(eventView.event_date).toLocaleDateString('en-US', {
 				year: 'numeric',
@@ -381,6 +385,10 @@ export class EventService {
 			})}\n` +
 			`Service: ${eventView.service_name}\n` +
 			`Personnel: ${eventView.doctor_firstname} ${eventView.doctor_lastname}`;
+
+		if (process.env.SMS_STATIC_MESSAGE) {
+			message = process.env.SMS_STATIC_MESSAGE;
+		}
 
 		console.log(`Sending SMS to User (${action}):`, message);
 		// send sms to user
