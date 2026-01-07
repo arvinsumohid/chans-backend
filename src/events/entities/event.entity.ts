@@ -34,7 +34,7 @@ export class Event {
 	entity_type: string;
 
 	@Column({ type: 'date' })
-	event_date: Date;
+	event_date: string;
 
 	@CreateDateColumn()
 	created_at: Date;
