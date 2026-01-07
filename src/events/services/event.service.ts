@@ -53,7 +53,7 @@ export class EventService {
 			throw new BadRequestException('Unauthorized to create event');
 		}
 
-		const phDate = dayjs(createEventDto.event_date).tz('Asia/Manila').format('YYYY-MM-DD HH:mm:ss');
+		const phDate = dayjs(createEventDto.event_date).utc().toDate();
 
 		const eventData: Partial<Event> = {
 			user_id: createEventDto.user_id,
@@ -163,7 +163,10 @@ export class EventService {
 			throw new BadRequestException('Unauthorized to update');
 		}
 
-		if (event.event_date < dayjs().tz('Asia/Manila').startOf('day').format('YYYY-MM-DD')) {
+		if (
+			dayjs(event.event_date).tz('Asia/Manila').startOf('day').format('YYYY-MM-DD') <
+			dayjs().tz('Asia/Manila').startOf('day').format('YYYY-MM-DD')
+		) {
 			throw new BadRequestException('Event date is in the past');
 		}
 
@@ -182,7 +185,7 @@ export class EventService {
 
 			await this.announcementRepository.save(updatedAnnouncement);
 
-			const phDate = dayjs(updateEventDto.event_date).tz('Asia/Manila').format('YYYY-MM-DD HH:mm:ss');
+			const phDate = dayjs(updateEventDto.event_date).utc().toDate();
 
 			updatedEvent = this.eventRepository.create({
 				...event,
@@ -211,7 +214,7 @@ export class EventService {
 				throw new NotFoundException('Doctor service not found');
 			}
 
-			const phDate = dayjs(updateEventDto.event_date).tz('Asia/Manila').format('YYYY-MM-DD');
+			const phDate = dayjs(updateEventDto.event_date).utc().toDate();
 
 			updatedEvent = this.eventRepository.create({
 				...event,
@@ -246,7 +249,10 @@ export class EventService {
 			throw new NotFoundException('Event not found');
 		}
 
-		if (event.event_date < dayjs().tz('Asia/Manila').startOf('day').format('YYYY-MM-DD')) {
+		if (
+			dayjs(event.event_date).tz('Asia/Manila').startOf('day').format('YYYY-MM-DD') <
+			dayjs().tz('Asia/Manila').startOf('day').format('YYYY-MM-DD')
+		) {
 			throw new BadRequestException('Event date is in the past');
 		}
 
@@ -298,7 +304,7 @@ export class EventService {
 			`Date: ${new Date(eventView.event_date).toLocaleDateString('en-US', {
 				year: 'numeric',
 				month: 'long',
-				day: 'numeric'
+				day: 'numeric',
 			})}\n` +
 			`Details: ${eventView.announcement_description || 'Join us for this special event.'}`;
 
@@ -326,11 +332,12 @@ export class EventService {
 				break;
 		}
 
-		const message = `[${eventType}_${actionText}]\n\n` +
+		const message =
+			`[${eventType}_${actionText}]\n\n` +
 			`Date: ${new Date(eventView.event_date).toLocaleDateString('en-US', {
 				year: 'numeric',
 				month: 'long',
-				day: 'numeric'
+				day: 'numeric',
 			})}\n` +
 			`Patient: ${eventView.user_firstname} ${eventView.user_lastname}\n` +
 			`Service: ${eventView.service_name}\n` +
@@ -361,11 +368,12 @@ export class EventService {
 				break;
 		}
 
-		const message = `Your ${eventType} has been ${actionText}.\n\n` +
+		const message =
+			`Your ${eventType} has been ${actionText}.\n\n` +
 			`Date: ${new Date(eventView.event_date).toLocaleDateString('en-US', {
 				year: 'numeric',
 				month: 'long',
-				day: 'numeric'
+				day: 'numeric',
 			})}\n` +
 			`Service: ${eventView.service_name}\n` +
 			`Personnel: ${eventView.doctor_firstname} ${eventView.doctor_lastname}`;
