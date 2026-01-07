@@ -13,7 +13,7 @@ export default class AdminSeeder implements Seeder {
 			const userRepo = dataSource.getRepository(User);
 
 			const hashed = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
-			await userRepo.insert({
+			const adminUser = userRepo.create({
 				username: process.env.ADMIN_USERNAME,
 				password: hashed,
 				firstname: process.env.ADMIN_FIRSTNAME || 'Admin',
@@ -26,7 +26,10 @@ export default class AdminSeeder implements Seeder {
 				description: 'System Administrator',
 				role: Role.ADMIN,
 				is_active: true,
+				is_bhw: false,
 			});
+
+			await userRepo.save(adminUser);
 		})(dataSource, factoryManager);
 	}
 }
