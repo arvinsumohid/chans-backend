@@ -163,7 +163,7 @@ export class EventService {
 			throw new BadRequestException('Unauthorized to update');
 		}
 
-		if (event.event_date < new Date()) {
+		if (event.event_date < dayjs().tz('Asia/Manila').startOf('day').toDate()) {
 			throw new BadRequestException('Event date is in the past');
 		}
 
@@ -246,7 +246,7 @@ export class EventService {
 			throw new NotFoundException('Event not found');
 		}
 
-		if (event.event_date < new Date()) {
+		if (event.event_date < dayjs().tz('Asia/Manila').startOf('day').toDate()) {
 			throw new BadRequestException('Event date is in the past');
 		}
 
