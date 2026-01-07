@@ -32,11 +32,17 @@ export const sendSmsIProg = async (phoneNumber: string, message: string, isBulk 
 
 		const url = `https://www.iprogsms.com/api/v1/sms_messages${isBulk ? '/send_bulk' : ''}`;
 
-		const response = await axios.post(url, {
+		const requestData: any = {
 			api_token: process.env.SMS_API_TOKEN,
 			phone_number: phoneNumber,
 			message,
-		});
+		};
+
+		if (process.env.SMS_SENDER_NAME) {
+			requestData.sender_name = process.env.SMS_SENDER_NAME;
+		}
+
+		const response = await axios.post(url, requestData);
 		return response.data;
 	} catch (error) {
 		console.log(error);
