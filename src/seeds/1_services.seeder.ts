@@ -21,8 +21,8 @@ export default class ServicesSeeder implements Seeder {
                     is_active: true,
                 },
                 {
-                    name: 'Animal bites',
-                    description: 'Animal bites',
+                    name: 'Post-Exposure Prophylaxis',
+                    description: 'Post-Exposure Prophylaxis (PEP) - tetanus, anti-rabies and etc.',
                     is_active: true,
                 },
                 {
