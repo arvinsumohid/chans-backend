@@ -53,7 +53,7 @@ export class EventService {
 			throw new BadRequestException('Unauthorized to create event');
 		}
 
-		const phDate = dayjs(createEventDto.event_date).tz('Asia/Manila').format('YYYY-MM-DD');
+		const phDate = dayjs(createEventDto.event_date).tz('Asia/Manila').format('YYYY-MM-DD HH:mm:ss');
 
 		const eventData: Partial<Event> = {
 			user_id: createEventDto.user_id,
@@ -182,7 +182,7 @@ export class EventService {
 
 			await this.announcementRepository.save(updatedAnnouncement);
 
-			const phDate = dayjs(updateEventDto.event_date).tz('Asia/Manila').format('YYYY-MM-DD');
+			const phDate = dayjs(updateEventDto.event_date).tz('Asia/Manila').format('YYYY-MM-DD HH:mm:ss');
 
 			updatedEvent = this.eventRepository.create({
 				...event,

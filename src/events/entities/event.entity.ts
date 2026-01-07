@@ -33,7 +33,7 @@ export class Event {
 	@Column({ type: 'varchar', length: 36 })
 	entity_type: string;
 
-	@Column({ type: 'date' })
+	@Column({ type: 'timestamp' })
 	event_date: string;
 
 	@CreateDateColumn()
