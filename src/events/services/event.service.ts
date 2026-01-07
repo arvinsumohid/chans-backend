@@ -294,16 +294,12 @@ export class EventService {
 		const message =
 			`[${eventType} ${actionText}]\n\n` +
 			`Upcoming Community Event Notification\n\n` +
-			`Event: ${eventView.announcement_name || 'New Event'}\n` +
-			`Date: ${
-				eventView.event_date
-					? new Date(eventView.event_date).toLocaleDateString('en-US', {
-							year: 'numeric',
-							month: 'long',
-							day: 'numeric',
-						})
-					: 'To be announced'
-			}\n` +
+			`Event: ${eventView.announcement_name}\n` +
+			`Date: ${new Date(eventView.event_date).toLocaleDateString('en-US', {
+				year: 'numeric',
+				month: 'long',
+				day: 'numeric'
+			})}\n` +
 			`Details: ${eventView.announcement_description || 'Join us for this special event.'}`;
 
 		console.log(`Sending SMS to BHW (${action}):`, message);
@@ -330,20 +326,15 @@ export class EventService {
 				break;
 		}
 
-		const message =
-			`[${eventType} ${actionText}]\n\n` +
-			`Date: ${
-				eventView.event_date
-					? new Date(eventView.event_date).toLocaleDateString('en-US', {
-							year: 'numeric',
-							month: 'long',
-							day: 'numeric',
-						})
-					: 'N/A'
-			}\n` +
-			`Patient: ${eventView.user_firstname || 'N/A'} ${eventView.user_lastname || ''}\n` +
-			`Service: ${eventView.service_name || 'N/A'}\n` +
-			`Doctor: ${eventView.doctor_firstname || 'N/A'} ${eventView.doctor_lastname || ''}`;
+		const message = `[${eventType}_${actionText}]\n\n` +
+			`Date: ${new Date(eventView.event_date).toLocaleDateString('en-US', {
+				year: 'numeric',
+				month: 'long',
+				day: 'numeric'
+			})}\n` +
+			`Patient: ${eventView.user_firstname} ${eventView.user_lastname}\n` +
+			`Service: ${eventView.service_name}\n` +
+			`Personnel: ${eventView.doctor_firstname} ${eventView.doctor_lastname}`;
 
 		console.log(`Sending SMS to Admin (${action}):`, message);
 		// send sms to admin
@@ -370,36 +361,14 @@ export class EventService {
 				break;
 		}
 
-		let message = '';
-		if (action === 'deleted') {
-			message =
-				`Your ${eventType} has been ${actionText}.\n\n` +
-				`Date: ${
-					eventView.event_date
-						? new Date(eventView.event_date).toLocaleDateString('en-US', {
-								year: 'numeric',
-								month: 'long',
-								day: 'numeric',
-							})
-						: 'N/A'
-				}\n` +
-				`Service: ${eventView.service_name || 'N/A'}\n` +
-				`Doctor: ${eventView.doctor_firstname || 'N/A'} ${eventView.doctor_lastname || ''}`;
-		} else {
-			message =
-				`Your ${eventType} has been ${actionText}.\n\n` +
-				`Date: ${
-					eventView.event_date
-						? new Date(eventView.event_date).toLocaleDateString('en-US', {
-								year: 'numeric',
-								month: 'long',
-								day: 'numeric',
-							})
-						: 'N/A'
-				}\n` +
-				`Service: ${eventView.service_name || 'N/A'}\n` +
-				`Doctor: ${eventView.doctor_firstname || 'N/A'} ${eventView.doctor_lastname || ''}`;
-		}
+		const message = `Your ${eventType} has been ${actionText}.\n\n` +
+			`Date: ${new Date(eventView.event_date).toLocaleDateString('en-US', {
+				year: 'numeric',
+				month: 'long',
+				day: 'numeric'
+			})}\n` +
+			`Service: ${eventView.service_name}\n` +
+			`Personnel: ${eventView.doctor_firstname} ${eventView.doctor_lastname}`;
 
 		console.log(`Sending SMS to User (${action}):`, message);
 		// send sms to user
