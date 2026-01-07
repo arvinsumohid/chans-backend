@@ -5,6 +5,7 @@ import { ListResponsePaginationDto } from '@/common/common.dto';
 import { EventListDto, QueryCalendarDto } from '../dtos/event.dto';
 import { User } from '@/users/entities/user.entity';
 import { EventType, Role } from '@/users/enum/user.enum';
+import dayjs from '@/utils/dayjs-config.util';
 
 @Injectable()
 export class EventViewRepository extends Repository<EventView> {
@@ -37,9 +38,12 @@ export class EventViewRepository extends Repository<EventView> {
 				}
 			}
 
+			const phFrom = from ? dayjs(from).tz('Asia/Manila').startOf('day').format('YYYY-MM-DD') : null;
+			const phTo = to ? dayjs(to).tz('Asia/Manila').endOf('day').format('YYYY-MM-DD') : null;
+
 			if (from && to) {
-				event.andWhere('events_vw.event_date >= :from', { from: new Date(from) });
-				event.andWhere('events_vw.event_date <= :to', { to: new Date(to) });
+				event.andWhere('events_vw.event_date >= :from', { from: phFrom });
+				event.andWhere('events_vw.event_date <= :to', { to: phTo });
 			}
 
 			// user get own appointment, if not admin
@@ -63,7 +67,8 @@ export class EventViewRepository extends Repository<EventView> {
 		}
 
 		if (!from && !to) {
-			event.andWhere('events_vw.event_date >= :event_date', { event_date: new Date() }).orderBy('events_vw.event_date', 'ASC');
+			const date = dayjs().tz('Asia/Manila').startOf('day').format('YYYY-MM-DD');
+			event.andWhere('events_vw.event_date >= :event_date', { event_date: date }).orderBy('events_vw.event_date', 'ASC');
 		}
 
 		// get total event
@@ -73,8 +78,13 @@ export class EventViewRepository extends Repository<EventView> {
 
 		const eventRes: EventView[] = await event.getRawMany();
 
+		const eventsWithPHDate = eventRes.map((ev) => ({
+			...ev,
+			event_date: dayjs(ev.event_date).tz('Asia/Manila').toDate(),
+		}));
+
 		return {
-			items: eventRes,
+			items: eventsWithPHDate,
 			total_item: totalEvent,
 			page,
 			size,
@@ -87,8 +97,8 @@ export class EventViewRepository extends Repository<EventView> {
 		// for type is event or appointment
 		if (query.type !== 'all') {
 			event
-				.andWhere('events_vw.event_date >= :start', { start: new Date(query.from) })
-				.andWhere('events_vw.event_date <= :end', { end: new Date(query.to) })
+				.andWhere('events_vw.event_date >= :start', { start: dayjs(query.from).tz('Asia/Manila').startOf('day').toDate() })
+				.andWhere('events_vw.event_date <= :end', { end: dayjs(query.to).tz('Asia/Manila').endOf('day').toDate() })
 				.andWhere('events_vw.entity_type = :entity_type', { entity_type: query.type });
 
 			// user get own appointment, if not admin
@@ -113,8 +123,8 @@ export class EventViewRepository extends Repository<EventView> {
 			}
 
 			event
-				.andWhere('events_vw.event_date >= :start', { start: new Date(query.from) })
-				.andWhere('events_vw.event_date <= :end', { end: new Date(query.to) });
+				.andWhere('events_vw.event_date >= :start', { start: dayjs(query.from).tz('Asia/Manila').startOf('day').toDate() })
+				.andWhere('events_vw.event_date <= :end', { end: dayjs(query.to).tz('Asia/Manila').endOf('day').toDate() });
 		}
 
 		const eventRes: EventView[] = await event.getRawMany();
