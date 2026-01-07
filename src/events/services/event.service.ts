@@ -108,7 +108,10 @@ export class EventService {
 			if ((savedEvent.entity_type as EventType) === EventType.EVENT) {
 				await this.sendSmsToBhw(eventView, 'created');
 			} else if ((savedEvent.entity_type as EventType) === EventType.APPOINTMENT) {
-				await this.sendSmsToAdmin(eventView, 'created');
+				await Promise.all([
+					this.sendSmsToAdmin(eventView, 'created'),
+					this.sendSmsToUser(eventView, createEventDto.user_id, 'created')
+				]);
 			}
 		}
 		return savedEvent;
@@ -236,7 +239,10 @@ export class EventService {
 			if (updateEventDto.type === EventType.EVENT) {
 				await this.sendSmsToBhw(eventView, 'updated');
 			} else if (updateEventDto.type === EventType.APPOINTMENT) {
-				await this.sendSmsToAdmin(eventView, 'updated');
+				await Promise.all([
+					this.sendSmsToAdmin(eventView, 'updated'),
+					this.sendSmsToUser(eventView, event.user_id, 'updated')
+				]);
 			}
 		}
 
@@ -262,11 +268,10 @@ export class EventService {
 
 		if (eventView) {
 			if ((event.entity_type as EventType) === EventType.APPOINTMENT) {
-				if (userId === event.user_id) {
-					await this.sendSmsToAdmin(eventView, 'deleted');
-				} else {
-					await this.sendSmsToUser(eventView, event.user_id, 'deleted');
-				}
+				await Promise.all([
+					this.sendSmsToAdmin(eventView, 'deleted'),
+					this.sendSmsToUser(eventView, event.user_id, 'deleted')
+				]);
 			} else if ((event.entity_type as EventType) === EventType.EVENT) {
 				await this.sendSmsToBhw(eventView, 'deleted');
 			}
@@ -332,8 +337,7 @@ export class EventService {
 				break;
 		}
 
-		const message =
-			`[${eventType}_${actionText}]\n\n` +
+		const message = `[${eventType} ${actionText}]\n\n` +
 			`Date: ${new Date(eventView.event_date).toLocaleDateString('en-US', {
 				year: 'numeric',
 				month: 'long',
