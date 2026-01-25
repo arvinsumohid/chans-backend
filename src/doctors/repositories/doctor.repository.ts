@@ -40,6 +40,17 @@ export class DoctorRepository extends Repository<Doctor> {
 					);
 				} else if (searchType === 'service') {
 					doctors.where('service.name LIKE :search', { search: `%${searchValue}%` });
+				} else if (searchType === 'all') {
+					doctors.where(
+						`(
+							doctors.firstname LIKE :search
+							OR 
+							doctors.lastname LIKE :search
+							OR 
+							service.name LIKE :search
+						)`,
+						{ search: `%${searchValue}%` },
+					);
 				}
 			}
 		}

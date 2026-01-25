@@ -24,17 +24,41 @@ export class EventViewRepository extends Repository<EventView> {
 
 			if (search && search.includes('::')) {
 				const [searchType, searchValue] = search.split('::');
-				if (['user', 'doctor'].includes(searchType)) {
-					event.andWhere(
-						`(
-                        events_vw.${searchType}_firstname LIKE :search
-							OR 
-							events_vw.${searchType}_lastname LIKE :search
-						)`,
-						{ search: `%${searchValue}%` },
-					);
-				} else {
-					event.andWhere(`events_vw.${searchType} LIKE :search`, { search: `%${searchValue}%` });
+
+				if (type === (EventType.APPOINTMENT as string)) {
+					if (['user', 'doctor'].includes(searchType)) {
+						event.andWhere(
+							`(
+								events_vw.${searchType}_firstname LIKE :search
+								OR 
+								events_vw.${searchType}_lastname LIKE :search
+							)`,
+							{ search: `%${searchValue}%` },
+						);
+					} else if (searchType === 'all') {
+						event.andWhere(
+							`(
+								events_vw.user_firstname LIKE :search
+								OR 
+								events_vw.user_lastname LIKE :search
+								OR 
+								events_vw.doctor_firstname LIKE :search
+								OR 
+								events_vw.doctor_lastname LIKE :search
+								OR 
+								events_vw.service_name LIKE :search
+							)`,
+							{ search: `%${searchValue}%` },
+						);
+					} else {
+						event.andWhere(`events_vw.${searchType} LIKE :search`, { search: `%${searchValue}%` });
+					}
+				} else if (type === (EventType.EVENT as string)) {
+					if (searchType === 'all') {
+						event.andWhere(`events_vw.announcement_name LIKE :search`, { search: `%${searchValue}%` });
+					} else {
+						event.andWhere(`events_vw.${searchType} LIKE :search`, { search: `%${searchValue}%` });
+					}
 				}
 			}
 
@@ -77,6 +101,8 @@ export class EventViewRepository extends Repository<EventView> {
 		event.skip((page - 1) * size).take(size);
 
 		const eventRes: EventView[] = await event.getRawMany();
+
+		console.log(event.getQuery());
 
 		const eventsWithPHDate = eventRes.map((ev) => ({
 			...ev,

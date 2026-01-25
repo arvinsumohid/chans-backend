@@ -33,6 +33,17 @@ export class ServiceRepository extends Repository<Service> {
 						)`,
 						{ search: `%${searchValue}%` },
 					);
+				} else if (searchType === 'all') {
+					services.where(
+						`(
+							doctor.firstname LIKE :search
+							OR 
+							doctor.lastname LIKE :search
+							OR 
+							services.name LIKE :search
+						)`,
+						{ search: `%${searchValue}%` },
+					);
 				}
 			}
 		}
