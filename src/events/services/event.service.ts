@@ -15,6 +15,8 @@ import { EventView } from '../entities/event.view.entity';
 import { AnnouncementRepository } from '@/announcements/repositories/announcement.repository';
 import { sendSmsIProg } from '@/helpers/sms.helper';
 import dayjs from '@/utils/dayjs-config.util';
+import { IsNull } from 'typeorm';
+import { EventsPdfService } from '../services/event-pdf.service';
 
 @Injectable()
 export class EventService {
@@ -27,6 +29,7 @@ export class EventService {
 		private readonly doctorServiceRepository: DoctorServiceRepository,
 		private readonly announcementService: AnnouncementService,
 		private readonly announcementRepository: AnnouncementRepository,
+		private readonly eventPdfService: EventsPdfService,
 	) {}
 
 	async createEvent(userId: string, createEventDto: CreateEventDto): Promise<Event> {
@@ -62,6 +65,12 @@ export class EventService {
 		};
 
 		if (createEventDto.type === EventType.APPOINTMENT) {
+			//check if is appointment on that date is already in limit
+			const isAppointmentDateAvailable = await this.isAppointmentDateAvailable(phDate);
+			if (!isAppointmentDateAvailable) {
+				throw new BadRequestException('Appointment limit reached');
+			}
+
 			const service = await this.serviceRepository.findOne({ where: { id: createEventDto.service_id } });
 			if (!service) {
 				throw new NotFoundException('Service not found');
@@ -108,10 +117,7 @@ export class EventService {
 			if ((savedEvent.entity_type as EventType) === EventType.EVENT) {
 				await this.sendSmsToBhw(eventView, 'created');
 			} else if ((savedEvent.entity_type as EventType) === EventType.APPOINTMENT) {
-				await Promise.all([
-					this.sendSmsToAdmin(eventView, 'created'),
-					this.sendSmsToUser(eventView, createEventDto.user_id, 'created')
-				]);
+				await Promise.all([this.sendSmsToAdmin(eventView, 'created'), this.sendSmsToUser(eventView, createEventDto.user_id, 'created')]);
 			}
 		}
 		return savedEvent;
@@ -239,10 +245,7 @@ export class EventService {
 			if (updateEventDto.type === EventType.EVENT) {
 				await this.sendSmsToBhw(eventView, 'updated');
 			} else if (updateEventDto.type === EventType.APPOINTMENT) {
-				await Promise.all([
-					this.sendSmsToAdmin(eventView, 'updated'),
-					this.sendSmsToUser(eventView, event.user_id, 'updated')
-				]);
+				await Promise.all([this.sendSmsToAdmin(eventView, 'updated'), this.sendSmsToUser(eventView, event.user_id, 'updated')]);
 			}
 		}
 
@@ -268,10 +271,7 @@ export class EventService {
 
 		if (eventView) {
 			if ((event.entity_type as EventType) === EventType.APPOINTMENT) {
-				await Promise.all([
-					this.sendSmsToAdmin(eventView, 'deleted'),
-					this.sendSmsToUser(eventView, event.user_id, 'deleted')
-				]);
+				await Promise.all([this.sendSmsToAdmin(eventView, 'deleted'), this.sendSmsToUser(eventView, event.user_id, 'deleted')]);
 			} else if ((event.entity_type as EventType) === EventType.EVENT) {
 				await this.sendSmsToBhw(eventView, 'deleted');
 			}
@@ -282,6 +282,11 @@ export class EventService {
 
 	private getEventTypeText(eventType: string): string {
 		return (eventType as EventType) === EventType.APPOINTMENT ? 'Appointment' : 'Event';
+	}
+
+	async generateEventsPdf(req: UserRequest, query: EventListDto): Promise<Buffer> {
+		const events = await this.findAll(req, { ...query, size: Number(process.env.DAILY_APPOINTMENT_LIMIT) });
+		return await this.eventPdfService.generateEventsPdf(events);
 	}
 
 	async sendSmsToBhw(eventView: EventView, action: 'created' | 'updated' | 'deleted' = 'updated') {
@@ -337,7 +342,8 @@ export class EventService {
 				break;
 		}
 
-		let message = `[${eventType} ${actionText}]\n\n` +
+		let message =
+			`[${eventType} ${actionText}]\n\n` +
 			`Date: ${new Date(eventView.event_date).toLocaleDateString('en-US', {
 				year: 'numeric',
 				month: 'long',
@@ -393,5 +399,16 @@ export class EventService {
 		console.log(`Sending SMS to User (${action}):`, message);
 		// send sms to user
 		await sendSmsIProg(phoneNumber, message);
+	}
+
+	private async isAppointmentDateAvailable(date: Date): Promise<boolean> {
+		const eventsAppointmentCount = await this.eventRepository.count({
+			where: {
+				event_date: dayjs(date).tz('Asia/Manila').startOf('day').format('YYYY-MM-DD'),
+				entity_type: EventType.APPOINTMENT,
+				deleted_at: IsNull(),
+			},
+		});
+		return eventsAppointmentCount < Number(process.env.DAILY_APPOINTMENT_LIMIT);
 	}
 }
