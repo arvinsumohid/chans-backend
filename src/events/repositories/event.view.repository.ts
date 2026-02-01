@@ -102,8 +102,6 @@ export class EventViewRepository extends Repository<EventView> {
 
 		const eventRes: EventView[] = await event.getRawMany();
 
-		console.log(event.getQuery());
-
 		const eventsWithPHDate = eventRes.map((ev) => ({
 			...ev,
 			event_date: dayjs(ev.event_date).tz('Asia/Manila').toDate(),

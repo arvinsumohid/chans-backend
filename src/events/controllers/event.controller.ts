@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Param, Body, Query, Request, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Param, Body, Query, Request, UseGuards, Res } from '@nestjs/common';
 import { EventService } from '../services/event.service';
 import { CreateEventDto, UpdateEventDto, QueryCalendarDto, EventListDto } from '../dtos/event.dto';
 import { ApiResponseDto } from '@/app.dto';
@@ -6,12 +6,17 @@ import { ApiResponse } from '@/utils/api.util';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { UserRequest } from '@/auth/dto/auth.dto';
+import { EventsPdfService } from '../services/event-pdf.service';
+import { Response } from 'express';
 
 @Controller('events')
 @ApiBearerAuth('access-token')
 @UseGuards(AuthGuard('jwt'))
 export class EventController {
-	constructor(private readonly eventService: EventService) {}
+	constructor(
+		private readonly eventService: EventService,
+		private readonly eventPdfService: EventsPdfService,
+	) {}
 
 	@Post()
 	async createEvent(@Request() req: { user: { id: string } }, @Body() createEventDto: CreateEventDto): Promise<ApiResponseDto> {
@@ -45,5 +50,15 @@ export class EventController {
 	async delete(@Request() req: UserRequest, @Param('id') id: string): Promise<ApiResponseDto> {
 		const userId: string = req.user.id;
 		return ApiResponse(await this.eventService.delete(userId, id), 'Event canceled successfully', 200);
+	}
+
+	@Get('export/pdf')
+	async exportPdf(@Request() req: UserRequest, @Res() res: Response, @Query() query: EventListDto) {
+		const pdfBuffer = await this.eventService.generateEventsPdf(req, query);
+
+		res.set('Content-Type', 'application/pdf');
+		res.set('Content-Disposition', 'attachment; filename="events.pdf"');
+
+		res.send(pdfBuffer);
 	}
 }

@@ -16,6 +16,7 @@ import { AnnouncementRepository } from '@/announcements/repositories/announcemen
 import { sendSmsIProg } from '@/helpers/sms.helper';
 import dayjs from '@/utils/dayjs-config.util';
 import { IsNull } from 'typeorm';
+import { EventsPdfService } from '../services/event-pdf.service';
 
 @Injectable()
 export class EventService {
@@ -28,6 +29,7 @@ export class EventService {
 		private readonly doctorServiceRepository: DoctorServiceRepository,
 		private readonly announcementService: AnnouncementService,
 		private readonly announcementRepository: AnnouncementRepository,
+		private readonly eventPdfService: EventsPdfService,
 	) {}
 
 	async createEvent(userId: string, createEventDto: CreateEventDto): Promise<Event> {
@@ -282,6 +284,11 @@ export class EventService {
 		return (eventType as EventType) === EventType.APPOINTMENT ? 'Appointment' : 'Event';
 	}
 
+	async generateEventsPdf(req: UserRequest, query: EventListDto): Promise<Buffer> {
+		const events = await this.findAll(req, { ...query, size: Number(process.env.DAILY_APPOINTMENT_LIMIT) });
+		return await this.eventPdfService.generateEventsPdf(events);
+	}
+
 	async sendSmsToBhw(eventView: EventView, action: 'created' | 'updated' | 'deleted' = 'updated') {
 		const users = await this.userRepository.find({ where: { is_bhw: true } });
 		const phoneNumber = users.map((user) => user.phone_number).filter(Boolean);
@@ -402,7 +409,6 @@ export class EventService {
 				deleted_at: IsNull(),
 			},
 		});
-		console.log('eventsAppointmentCount', eventsAppointmentCount);
 		return eventsAppointmentCount < Number(process.env.DAILY_APPOINTMENT_LIMIT);
 	}
 }
