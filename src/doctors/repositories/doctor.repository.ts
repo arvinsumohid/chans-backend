@@ -58,8 +58,8 @@ export class DoctorRepository extends Repository<Doctor> {
 		const totalEvent = await doctors.getCount();
 
 		doctors
-			.skip((page - 1) * size)
-			.take(size)
+			.offset((page - 1) * size)
+			.limit(size)
 			.orderBy('doctors.lastname', 'ASC');
 
 		const doctorsRes: DoctorRawDto[] = await doctors.getRawMany();

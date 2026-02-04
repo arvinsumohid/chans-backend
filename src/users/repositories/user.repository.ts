@@ -59,8 +59,8 @@ export class UserRepository extends Repository<User> {
 		const totalEvent = await users.getCount();
 
 		users
-			.skip((page - 1) * size)
-			.take(size)
+			.offset((page - 1) * size)
+			.limit(size)
 			.orderBy('users.lastname', 'ASC');
 
 		const usersRes: UserRawDto[] = await users.getRawMany();

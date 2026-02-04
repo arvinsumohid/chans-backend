@@ -51,8 +51,8 @@ export class ServiceRepository extends Repository<Service> {
 		const totalEvent = await services.getCount();
 
 		services
-			.skip((page - 1) * size)
-			.take(size)
+			.offset((page - 1) * size)
+			.limit(size)
 			.orderBy('services.name', 'ASC');
 
 		const servicesRes: ServiceRawDto[] = await services.getRawMany();
