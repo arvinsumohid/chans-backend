@@ -13,9 +13,8 @@ export class ServiceRepository extends Repository<Service> {
 	async findService(pagination: PaginationDto) {
 		const { page = 1, size = 10, search } = pagination;
 		const services = this.createQueryBuilder('services')
-			.select('services.*')
-			.leftJoinAndSelect('services.doctor_services', 'doctor_services')
-			.leftJoinAndSelect('doctor_services.doctor', 'doctor');
+			.leftJoin('services.doctor_services', 'doctor_services')
+			.leftJoin('doctor_services.doctor', 'doctor');
 
 		if (search) {
 			if (!search.includes('::')) {
@@ -48,14 +47,34 @@ export class ServiceRepository extends Repository<Service> {
 			}
 		}
 
-		const totalEvent = await services.getCount();
+		const totalCountResult = await services.clone().select('COUNT(DISTINCT services.id)', 'total').getRawOne<{ total: string }>();
+		const totalEvent = Number(totalCountResult?.total ?? 0);
 
-		services
+		const pagedServiceIds = await services
+			.clone()
+			.select('services.id', 'id')
+			.addSelect('services.name', 'name')
+			.distinct(true)
+			.orderBy('services.name', 'ASC')
+			.addOrderBy('services.id', 'ASC')
 			.offset((page - 1) * size)
 			.limit(size)
-			.orderBy('services.name', 'ASC');
+			.getRawMany<{ id: string; name: string }>();
 
-		const servicesRes: ServiceRawDto[] = await services.getRawMany();
+		const serviceIds = pagedServiceIds.map((row) => row.id);
+		if (!serviceIds.length) {
+			return { items: [], total_item: totalEvent, page, size };
+		}
+
+		const serviceRowsQuery = this.createQueryBuilder('services')
+			.select('services.*')
+			.leftJoinAndSelect('services.doctor_services', 'doctor_services')
+			.leftJoinAndSelect('doctor_services.doctor', 'doctor')
+			.where('services.id IN (:...serviceIds)', { serviceIds })
+			.orderBy('services.name', 'ASC')
+			.addOrderBy('services.id', 'ASC');
+
+		const servicesRes: ServiceRawDto[] = await serviceRowsQuery.getRawMany();
 
 		const servicesResMap = ServiceDto.mapToServiceEntities(servicesRes);
 
