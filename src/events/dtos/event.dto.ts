@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsDate, ValidateIf, IsEnum } from 'class-validator';
+import { IsNotEmpty, IsString, IsDate, ValidateIf, IsEnum, IsOptional, IsBoolean } from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 import { Event } from '../entities/event.entity';
 import { UserDto } from '@/users/dtos/user.dto';
@@ -47,6 +47,15 @@ export class CreateEventDto {
 
 export class UpdateEventDto extends PartialType(CreateEventDto) {}
 
+export enum EventDateSortOrder {
+	ASC = 'asc',
+	DESC = 'desc',
+}
+
+export enum EventSortBy {
+	APPOINTMENT_DATE = 'appointment_date',
+}
+
 export class QueryCalendarDto {
 	@ApiProperty({ example: '2025-11-21', required: true })
 	@IsNotEmpty()
@@ -70,15 +79,29 @@ export class EventListDto extends PaginationDto {
 	@IsString()
 	type: string;
 
-	@ApiProperty({ example: '' })
+	@ApiProperty({ example: '', required: false })
 	@ValidateIf((o: { from: string; to: string }) => o.to !== undefined)
 	@IsString()
 	from: string;
 
-	@ApiProperty({ example: '' })
+	@ApiProperty({ example: '', required: false })
 	@ValidateIf((o: { from: string; to: string }) => o.from !== undefined)
 	@IsString()
 	to: string;
+
+	@IsOptional()
+	@IsBoolean()
+	for_pdf?: boolean;
+
+	@ApiProperty({ example: 'appointment_date', required: false, enum: EventSortBy })
+	@IsOptional()
+	@IsEnum(EventSortBy)
+	sort_by?: EventSortBy;
+
+	@ApiProperty({ example: 'asc', required: false, enum: EventDateSortOrder })
+	@IsOptional()
+	@IsEnum(EventDateSortOrder)
+	sort_order?: EventDateSortOrder;
 }
 
 export class EventDto {

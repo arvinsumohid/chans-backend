@@ -285,7 +285,7 @@ export class EventService {
 	}
 
 	async generateEventsPdf(req: UserRequest, query: EventListDto): Promise<Buffer> {
-		const events = await this.findAll(req, { ...query, size: Number(process.env.DAILY_APPOINTMENT_LIMIT) });
+		const events = await this.findAll(req, { ...query, for_pdf: true, size: Number(process.env.DAILY_APPOINTMENT_LIMIT) });
 		return await this.eventPdfService.generateEventsPdf(events);
 	}
 
