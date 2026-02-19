@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsDate, ValidateIf, IsEnum, IsOptional, IsBoolean } from 'class-validator';
+import { IsNotEmpty, IsString, IsDate, ValidateIf, IsEnum, IsOptional, IsBoolean, IsDateString } from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 import { Event } from '../entities/event.entity';
 import { UserDto } from '@/users/dtos/user.dto';
@@ -71,6 +71,13 @@ export class QueryCalendarDto {
 	@IsNotEmpty()
 	@IsString()
 	type: string;
+}
+
+export class QueryAppointmentBookedCountDto {
+	@ApiProperty({ example: '2026-02-19', required: true })
+	@IsNotEmpty()
+	@IsDateString()
+	date: string;
 }
 
 export class EventListDto extends PaginationDto {
