@@ -24,17 +24,41 @@ export class EventViewRepository extends Repository<EventView> {
 
 			if (search && search.includes('::')) {
 				const [searchType, searchValue] = search.split('::');
-				if (['user', 'doctor'].includes(searchType)) {
-					event.andWhere(
-						`(
-                        events_vw.${searchType}_firstname LIKE :search
-							OR 
-							events_vw.${searchType}_lastname LIKE :search
-						)`,
-						{ search: `%${searchValue}%` },
-					);
-				} else {
-					event.andWhere(`events_vw.${searchType} LIKE :search`, { search: `%${searchValue}%` });
+
+				if (type === (EventType.APPOINTMENT as string)) {
+					if (['user', 'doctor'].includes(searchType)) {
+						event.andWhere(
+							`(
+								events_vw.${searchType}_firstname LIKE :search
+								OR 
+								events_vw.${searchType}_lastname LIKE :search
+							)`,
+							{ search: `%${searchValue}%` },
+						);
+					} else if (searchType === 'all') {
+						event.andWhere(
+							`(
+								events_vw.user_firstname LIKE :search
+								OR 
+								events_vw.user_lastname LIKE :search
+								OR 
+								events_vw.doctor_firstname LIKE :search
+								OR 
+								events_vw.doctor_lastname LIKE :search
+								OR 
+								events_vw.service_name LIKE :search
+							)`,
+							{ search: `%${searchValue}%` },
+						);
+					} else {
+						event.andWhere(`events_vw.${searchType} LIKE :search`, { search: `%${searchValue}%` });
+					}
+				} else if (type === (EventType.EVENT as string)) {
+					if (searchType === 'all') {
+						event.andWhere(`events_vw.announcement_name LIKE :search`, { search: `%${searchValue}%` });
+					} else {
+						event.andWhere(`events_vw.${searchType} LIKE :search`, { search: `%${searchValue}%` });
+					}
 				}
 			}
 
@@ -74,7 +98,7 @@ export class EventViewRepository extends Repository<EventView> {
 		// get total event
 		totalEvent = await event.getCount();
 
-		event.skip((page - 1) * size).take(size);
+		event.offset((page - 1) * size).limit(size);
 
 		const eventRes: EventView[] = await event.getRawMany();
 
@@ -119,12 +143,15 @@ export class EventViewRepository extends Repository<EventView> {
 				);
 			} else {
 				// for admin
-				event.andWhere('events_vw.entity_type IN (:...entity_type)', { entity_type: ['event', 'appointment'] });
+				event
+					.andWhere('events_vw.entity_type IN (:...entity_type)', { entity_type: ['event', 'appointment'] })
+					.andWhere('events_vw.event_deleted_at IS NULL');
 			}
 
 			event
 				.andWhere('events_vw.event_date >= :start', { start: dayjs(query.from).tz('Asia/Manila').startOf('day').toDate() })
-				.andWhere('events_vw.event_date <= :end', { end: dayjs(query.to).tz('Asia/Manila').endOf('day').toDate() });
+				.andWhere('events_vw.event_date <= :end', { end: dayjs(query.to).tz('Asia/Manila').endOf('day').toDate() })
+				.andWhere('events_vw.event_deleted_at IS NULL');
 		}
 
 		const eventRes: EventView[] = await event.getRawMany();

@@ -40,6 +40,17 @@ export class DoctorRepository extends Repository<Doctor> {
 					);
 				} else if (searchType === 'service') {
 					doctors.where('service.name LIKE :search', { search: `%${searchValue}%` });
+				} else if (searchType === 'all') {
+					doctors.where(
+						`(
+							doctors.firstname LIKE :search
+							OR 
+							doctors.lastname LIKE :search
+							OR 
+							service.name LIKE :search
+						)`,
+						{ search: `%${searchValue}%` },
+					);
 				}
 			}
 		}
@@ -47,8 +58,8 @@ export class DoctorRepository extends Repository<Doctor> {
 		const totalEvent = await doctors.getCount();
 
 		doctors
-			.skip((page - 1) * size)
-			.take(size)
+			.offset((page - 1) * size)
+			.limit(size)
 			.orderBy('doctors.lastname', 'ASC');
 
 		const doctorsRes: DoctorRawDto[] = await doctors.getRawMany();

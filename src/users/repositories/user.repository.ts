@@ -37,6 +37,19 @@ export class UserRepository extends Repository<User> {
 					);
 				} else if (searchType === 'barangay') {
 					users.where('address.barangay LIKE :search', { search: `%${searchValue}%` });
+				} else if (searchType === 'all') {
+					users.where(
+						`(
+							users.firstname LIKE :search
+							OR 
+							users.lastname LIKE :search
+							OR 
+							address.barangay LIKE :search
+						)`,
+						{ search: `%${searchValue}%` },
+					);
+
+					console.log(users.getQuery());
 				}
 			}
 		}
@@ -46,8 +59,8 @@ export class UserRepository extends Repository<User> {
 		const totalEvent = await users.getCount();
 
 		users
-			.skip((page - 1) * size)
-			.take(size)
+			.offset((page - 1) * size)
+			.limit(size)
 			.orderBy('users.lastname', 'ASC');
 
 		const usersRes: UserRawDto[] = await users.getRawMany();

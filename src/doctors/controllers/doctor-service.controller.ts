@@ -1,6 +1,6 @@
 import { Controller, Post, Body, UseGuards, Param, Get, Delete } from '@nestjs/common';
 import { ApiResponse } from '../../utils/api.util';
-import { AddServiceViaDoctorDto } from '../dtos/doctor-service.dto';
+import { AddDoctorViaServiceDto, AddServiceViaDoctorDto } from '../dtos/doctor-service.dto';
 import { DoctorServiceService } from '../services/doctor-service.service';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
@@ -37,5 +37,14 @@ export class DoctorServiceController {
 	@Get('service/:service_id')
 	async getDoctorsByService(@Param('service_id') service_id: string) {
 		return ApiResponse(await this.doctorServiceService.getDoctorsByService(service_id), 'Doctor services found successfully', 200);
+	}
+
+	@Post('service/:service_id')
+	async addDoctors(@Param('service_id') service_id: string, @Body() addDoctorViaServiceDto: AddDoctorViaServiceDto) {
+		return ApiResponse(
+			await this.doctorServiceService.addDoctorsByService(service_id, addDoctorViaServiceDto),
+			'Doctor service created successfully',
+			201,
+		);
 	}
 }
