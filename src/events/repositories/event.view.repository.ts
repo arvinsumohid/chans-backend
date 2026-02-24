@@ -14,10 +14,15 @@ export class EventViewRepository extends Repository<EventView> {
 	}
 
 	async findEvents(user: User, query: EventListDto): Promise<ListResponsePaginationDto<EventView>> {
-		const { page = 1, size = 10, type, search, from, to } = query;
+		const { page = 1, size = 10, type, search, from, to, sort_by, sort_order = 'asc' } = query;
 		const { role, id } = user;
 		const event = this.createQueryBuilder('events_vw').select('events_vw.*');
 		let totalEvent = 0;
+		const sortDirection: 'ASC' | 'DESC' = (sort_order as string) === 'desc' ? 'DESC' : 'ASC';
+
+		if (query.for_pdf) {
+			event.andWhere('events_vw.event_deleted_at IS NULL');
+		}
 
 		if (type && type !== 'all') {
 			event.andWhere('events_vw.entity_type = :entity_type', { entity_type: type });
@@ -92,8 +97,14 @@ export class EventViewRepository extends Repository<EventView> {
 
 		if (!from && !to) {
 			const date = dayjs().tz('Asia/Manila').startOf('day').format('YYYY-MM-DD');
-			event.andWhere('events_vw.event_date >= :event_date', { event_date: date }).orderBy('events_vw.event_date', 'ASC');
+			event.andWhere('events_vw.event_date >= :event_date', { event_date: date });
 		}
+
+		const sortColumnMap: Record<string, string> = {
+			appointment_date: 'events_vw.event_date',
+		};
+		const sortColumn = (sort_by && sortColumnMap[sort_by]) || 'events_vw.event_date';
+		event.orderBy(sortColumn, sortDirection);
 
 		// get total event
 		totalEvent = await event.getCount();
