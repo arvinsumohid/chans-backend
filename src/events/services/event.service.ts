@@ -15,7 +15,7 @@ import { EventView } from '../entities/event.view.entity';
 import { AnnouncementRepository } from '@/announcements/repositories/announcement.repository';
 import { sendSmsIProg } from '@/helpers/sms.helper';
 import dayjs from '@/utils/dayjs-config.util';
-import { IsNull } from 'typeorm';
+import { Between, IsNull } from 'typeorm';
 import { EventsPdfService } from '../services/event-pdf.service';
 
 @Injectable()
@@ -161,6 +161,22 @@ export class EventService {
 		return await this.eventViewRepository.findEventsCalendar(user, query);
 	}
 
+	async getAppointmentBookedCount(date: string): Promise<{ appointment_date: string; entity_type: EventType; booked_count: number }> {
+		const appointmentDate = dayjs(date).tz('Asia/Manila').startOf('day');
+
+		if (!appointmentDate.isValid()) {
+			throw new BadRequestException('Invalid appointment date');
+		}
+
+		const bookedCount = await this.getAppointmentCountByDate(appointmentDate.toDate());
+
+		return {
+			appointment_date: appointmentDate.format('YYYY-MM-DD'),
+			entity_type: EventType.APPOINTMENT,
+			booked_count: bookedCount,
+		};
+	}
+
 	async update(userId: string, id: string, updateEventDto: UpdateEventDto): Promise<Event> {
 		const event = await this.eventRepository.findOne({ where: { id } });
 		let updatedEvent: Event | undefined;
@@ -285,7 +301,7 @@ export class EventService {
 	}
 
 	async generateEventsPdf(req: UserRequest, query: EventListDto): Promise<Buffer> {
-		const events = await this.findAll(req, { ...query, size: Number(process.env.DAILY_APPOINTMENT_LIMIT) });
+		const events = await this.findAll(req, { ...query, for_pdf: true, size: Number(process.env.DAILY_APPOINTMENT_LIMIT) });
 		return await this.eventPdfService.generateEventsPdf(events);
 	}
 
@@ -402,13 +418,21 @@ export class EventService {
 	}
 
 	private async isAppointmentDateAvailable(date: Date): Promise<boolean> {
+		const eventsAppointmentCount = await this.getAppointmentCountByDate(date);
+		return eventsAppointmentCount < Number(process.env.DAILY_APPOINTMENT_LIMIT);
+	}
+
+	private async getAppointmentCountByDate(date: Date): Promise<number> {
+		const startOfDay = dayjs(date).tz('Asia/Manila').startOf('day').toDate();
+		const endOfDay = dayjs(date).tz('Asia/Manila').endOf('day').toDate();
+
 		const eventsAppointmentCount = await this.eventRepository.count({
 			where: {
-				event_date: dayjs(date).tz('Asia/Manila').startOf('day').format('YYYY-MM-DD'),
+				event_date: Between(startOfDay, endOfDay) as any,
 				entity_type: EventType.APPOINTMENT,
 				deleted_at: IsNull(),
 			},
 		});
-		return eventsAppointmentCount < Number(process.env.DAILY_APPOINTMENT_LIMIT);
+		return eventsAppointmentCount;
 	}
 }

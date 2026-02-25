@@ -40,7 +40,6 @@ export class EventsPdfService {
 			doc.text('Medical Personnel', 150, startY);
 			doc.text('Service', 250, startY);
 			doc.text('Appointment Date', 350, startY);
-			doc.text('Status', 450, startY);
 
 			doc.moveDown();
 			doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
@@ -55,7 +54,6 @@ export class EventsPdfService {
 				doc.text(event.personnel, 150, currentY, { width: 100 });
 				doc.text(event.service, 250, currentY, { width: 100 });
 				doc.text(event.appointment_date, 350, currentY, { width: 100 });
-				doc.text(event.status, 450, currentY, { width: 100 });
 
 				doc.moveDown();
 				doc.y += rowHeight;

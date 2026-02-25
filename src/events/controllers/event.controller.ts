@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Put, Delete, Param, Body, Query, Request, UseGuards, Res } from '@nestjs/common';
 import { EventService } from '../services/event.service';
-import { CreateEventDto, UpdateEventDto, QueryCalendarDto, EventListDto } from '../dtos/event.dto';
+import { CreateEventDto, UpdateEventDto, QueryCalendarDto, EventListDto, QueryAppointmentBookedCountDto } from '../dtos/event.dto';
 import { ApiResponseDto } from '@/app.dto';
 import { ApiResponse } from '@/utils/api.util';
 import { AuthGuard } from '@nestjs/passport';
@@ -33,6 +33,15 @@ export class EventController {
 	async findCalendar(@Request() req: UserRequest, @Query() query: QueryCalendarDto): Promise<ApiResponseDto> {
 		const userId: string = req.user.id;
 		return ApiResponse(await this.eventService.findCalendar(userId, query), 'Events found successfully', 200);
+	}
+
+	@Get('appointments/booked-count')
+	async getAppointmentBookedCount(@Query() query: QueryAppointmentBookedCountDto): Promise<ApiResponseDto> {
+		return ApiResponse(
+			await this.eventService.getAppointmentBookedCount(query.date),
+			'Appointment booked count fetched successfully',
+			200,
+		);
 	}
 
 	@Get(':id')
