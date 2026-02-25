@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventRepository } from '../repositories/event.repository';
-import { EventListDto, CreateEventDto, UpdateEventDto, QueryCalendarDto } from '../dtos/event.dto';
+import { EventListDto, CreateEventDto, UpdateEventDto, QueryCalendarDto, CancelEventDto } from '../dtos/event.dto';
 import { Event } from '../entities/event.entity';
 import { UserRepository } from '@/users/repositories/user.repository';
 import { ServiceRepository } from '@/services/repositories/service.repository';
@@ -296,6 +296,39 @@ export class EventService {
 		await this.eventRepository.softDelete(id);
 	}
 
+	async cancel(userRole: string, id: string, cancelEventDto: CancelEventDto): Promise<void> {
+		const { reason } = cancelEventDto;
+		const event = await this.eventRepository.findOne({ where: { id } });
+		if (!event) {
+			throw new NotFoundException('Event not found');
+		}
+
+		if (
+			dayjs(event.event_date).tz('Asia/Manila').startOf('day').format('YYYY-MM-DD') <
+			dayjs().tz('Asia/Manila').startOf('day').format('YYYY-MM-DD')
+		) {
+			throw new BadRequestException('Event date is in the past');
+		}
+
+		const eventView = await this.eventViewRepository.findOne({
+			where: { event_id: event.id },
+		});
+
+		if (eventView) {
+			if ((event.entity_type as EventType) === EventType.APPOINTMENT) {
+				if ((userRole as Role) === Role.ADMIN) {
+					await Promise.all([this.sendSmsToAdmin(eventView, 'deleted'), this.sendSmsToUser(eventView, event.user_id, 'deleted', reason)]);
+				} else if ((userRole as Role) === Role.USER) {
+					await Promise.all([this.sendSmsToAdmin(eventView, 'deleted'), this.sendSmsToUser(eventView, event.user_id, 'deleted')]);
+				}
+			} else if ((event.entity_type as EventType) === EventType.EVENT) {
+				await this.sendSmsToBhw(eventView, 'deleted');
+			}
+		}
+
+		await this.eventRepository.softDelete(id);
+	}
+
 	private getEventTypeText(eventType: string): string {
 		return (eventType as EventType) === EventType.APPOINTMENT ? 'Appointment' : 'Event';
 	}
@@ -378,7 +411,7 @@ export class EventService {
 		await sendSmsIProg(phoneNumber.join(','), message, true);
 	}
 
-	async sendSmsToUser(eventView: EventView, userId: string, action: 'created' | 'updated' | 'deleted' = 'updated') {
+	async sendSmsToUser(eventView: EventView, userId: string, action: 'created' | 'updated' | 'deleted' = 'updated', reason?: string) {
 		const user = await this.userRepository.findOne({ where: { id: userId } });
 		if (!user || !user.phone_number) return;
 
@@ -398,18 +431,23 @@ export class EventService {
 				break;
 		}
 
-		let message =
-			`Your ${eventType} has been ${actionText}.\n\n` +
-			`Date: ${new Date(eventView.event_date).toLocaleDateString('en-US', {
-				year: 'numeric',
-				month: 'long',
-				day: 'numeric',
-			})}\n` +
-			`Service: ${eventView.service_name}\n` +
-			`Personnel: ${eventView.doctor_firstname} ${eventView.doctor_lastname}`;
+		let message = '';
+		if (action === 'deleted' && reason) {
+			message += `Dear ${user.firstname} ${user.lastname}, ${reason}.\n\nKindly reach out to arrange a new schedule.`;
+		} else {
+			message =
+				`Your ${eventType} has been ${actionText}.\n\n` +
+				`Date: ${new Date(eventView.event_date).toLocaleDateString('en-US', {
+					year: 'numeric',
+					month: 'long',
+					day: 'numeric',
+				})}\n` +
+				`Service: ${eventView.service_name}\n` +
+				`Personnel: ${eventView.doctor_firstname} ${eventView.doctor_lastname}`;
 
-		if (process.env.SMS_STATIC_MESSAGE) {
-			message = process.env.SMS_STATIC_MESSAGE;
+			if (process.env.SMS_STATIC_MESSAGE) {
+				message = process.env.SMS_STATIC_MESSAGE;
+			}
 		}
 
 		console.log(`Sending SMS to User (${action}):`, message);

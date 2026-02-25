@@ -124,3 +124,10 @@ export class EventDto {
 		return { ...event, user } as Event;
 	}
 }
+
+export class CancelEventDto {
+	@ApiProperty()
+	@IsNotEmpty()
+	@IsString()
+	reason: string;
+}
