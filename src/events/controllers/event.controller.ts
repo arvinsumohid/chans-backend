@@ -1,6 +1,13 @@
 import { Controller, Post, Get, Put, Delete, Param, Body, Query, Request, UseGuards, Res } from '@nestjs/common';
 import { EventService } from '../services/event.service';
-import { CreateEventDto, UpdateEventDto, QueryCalendarDto, EventListDto, QueryAppointmentBookedCountDto } from '../dtos/event.dto';
+import {
+	CreateEventDto,
+	UpdateEventDto,
+	QueryCalendarDto,
+	EventListDto,
+	QueryAppointmentBookedCountDto,
+	CancelEventDto,
+} from '../dtos/event.dto';
 import { ApiResponseDto } from '@/app.dto';
 import { ApiResponse } from '@/utils/api.util';
 import { AuthGuard } from '@nestjs/passport';
@@ -37,11 +44,7 @@ export class EventController {
 
 	@Get('appointments/booked-count')
 	async getAppointmentBookedCount(@Query() query: QueryAppointmentBookedCountDto): Promise<ApiResponseDto> {
-		return ApiResponse(
-			await this.eventService.getAppointmentBookedCount(query.date),
-			'Appointment booked count fetched successfully',
-			200,
-		);
+		return ApiResponse(await this.eventService.getAppointmentBookedCount(query.date), 'Appointment booked count fetched successfully', 200);
 	}
 
 	@Get(':id')
@@ -59,6 +62,12 @@ export class EventController {
 	async delete(@Request() req: UserRequest, @Param('id') id: string): Promise<ApiResponseDto> {
 		const userId: string = req.user.id;
 		return ApiResponse(await this.eventService.delete(userId, id), 'Event canceled successfully', 200);
+	}
+
+	@Post(':id/cancel')
+	async cancel(@Request() req: UserRequest, @Param('id') id: string, @Body() cancelEventDto: CancelEventDto): Promise<ApiResponseDto> {
+		const userRole: string = req.user.role;
+		return ApiResponse(await this.eventService.cancel(userRole, id, cancelEventDto), 'Event canceled successfully', 200);
 	}
 
 	@Get('export/pdf')
