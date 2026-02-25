@@ -23,12 +23,13 @@ export class EventController {
 	constructor(
 		private readonly eventService: EventService,
 		private readonly eventPdfService: EventsPdfService,
-	) {}
+	) { }
 
 	@Post()
 	async createEvent(@Request() req: { user: { id: string } }, @Body() createEventDto: CreateEventDto): Promise<ApiResponseDto> {
 		const userId: string = req.user.id;
-		return ApiResponse(await this.eventService.createEvent(userId, createEventDto), 'Event created successfully', 201);
+		const type = createEventDto.type.charAt(0).toUpperCase() + createEventDto.type.slice(1);
+		return ApiResponse(await this.eventService.createEvent(userId, createEventDto), `${type} created successfully`, 201);
 	}
 
 	@Get()
@@ -80,3 +81,4 @@ export class EventController {
 		res.send(pdfBuffer);
 	}
 }
+
